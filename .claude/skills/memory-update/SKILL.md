@@ -1,55 +1,66 @@
----
-name: memory-update
-description: |
-  经验记忆更新技能。当遇到重要经验（成功/失败/Bug修复/环境问题）需要沉淀时调用。
-  Use when completing a module, fixing a bug, or encountering a noteworthy pattern.
-  触发词：记录经验、更新 memory、沉淀、经验总结。
-allowed-tools: Read, Write, Edit, Glob
----
+# SKILL: memory-update
+# 触发：模块/项目完成后，或发现新的重要模式时
+# 目的：将本次经验结构化写入 Memory，让下一个项目自动受益
 
-# Memory 更新技能
+## 判断是否值得写入
 
-## 决策：写到哪里？
+写入条件（满足任意一条）：
+- 遇到了一个之前 Memory 没有记录的 Bug 类型
+- 找到了某类问题的更好解决模式
+- 发现了某个假设是错的（反面教材同样有价值）
+- 某个技术决策（如 RLock vs Lock）有明确的理由
 
-```
-这条经验换个完全不同的项目还有用吗？
-├── 是 → memory/framework/ 或 memory/domains/<domain>/
-└── 否 → memory/projects/<project>/
-```
+**不要写入**：
+- 太具体到单个项目的细节（放项目记忆，不放框架记忆）
+- 已有 Memory 记录覆盖的重复内容
+- 还不确定是否普适的单次观察
 
-## 记录格式（标准单条 MEM_*.md）
+## 写入格式
 
 ```markdown
 ---
-id: MEM_<F|D|P>_<域>_<NNN>
-title: <15字内精确标题>
+id: MEM_F_C_XXX          # 框架级CRITICAL: MEM_F_C_
+                          # 框架级IMPORTANT: MEM_F_I_
+                          # 领域级: MEM_D_[领域]_
+                          # 项目级: MEM_P_[项目]_
+title: [一句话标题，说清楚是什么规则]
 tags:
-  domain: general | <your_domain> | ...
-  lang_stack: python | cpp | general
-  task_type: tdd_impl | spec_writing | debugging | diagnosis
-  severity: CRITICAL | IMPORTANT | TIPS
-created: <YYYY-MM-DD>
-expires: never | <YYYY-MM-DD>
-confidence: high | medium | low
+  domain: [networking / storage / parsing / general]
+  lang_stack: python
+  task_type: [tdd_impl / spec_writing / debugging / network_code]
+  severity: CRITICAL / IMPORTANT / INFO
+created: YYYY-MM-DD
+validated_by: [验证来源，如"mini-redis对照实验"]
+expires: never / YYYY-MM-DD
+confidence: high / medium / low
 ---
 
-## 经验内容（200字内）
+## 经验
+[核心规则，1–3句话，直接说结论]
 
-## 触发场景（什么情况该读此记录）
+## 原因
+[为什么，机制解释]
 
-## 反例（错误做法 → 后果）
+## 反例 → 后果
+[错误写法] → [导致什么问题]
 
-## 正例（正确做法，含代码示例）
+## 正例
+[正确写法，可含代码片段]
+
+## 适用范围
+[什么场景下这条规则适用]
 ```
 
-## 创建后必须更新索引
+## 写入后更新 INDEX
 
-```bash
-# 更新 memory/INDEX.md 对应分类的表格，添加一行
-# 更新对应域索引 memory/domains/<domain>/INDEX.md（如适用）
+在 `memory/INDEX.md` 对应表格中添加新记录行：
+
+```markdown
+| MEM_F_C_XXX | [标题] | [适用场景] | framework/critical/MEM_F_C_XXX.md |
 ```
 
-## 严重度说明
-- **CRITICAL**：违反直接导致错误，永不过期，每次启动必加载
-- **IMPORTANT**：提升效率，12个月后需 review
-- **TIPS**：锦上添花，6个月后需 review
+## 淘汰机制
+
+- 每6个月审查一次 IMPORTANT 以下级别的记录
+- 3个项目都未命中的记录降级或删除
+- CRITICAL 级别需要明确反例才能删除

@@ -1,35 +1,41 @@
----
-name: reviewer
-description: |
-  代码复审 Agent。检查实现代码的合规性、原创性、SPEC 一致性。
-  Use after module implementation, before marking complete.
-  触发词：复审、代码审查、检查合规、review。
-tools: Read, Glob, Grep
-model: sonnet
----
+# AGENT: reviewer
+# 激活：所有模块 GREEN 后，H模式自动触发，M模式可选
+# 职责：代码复审，调用 validate-output skill
 
-你是 Reviewer Agent，只读模式，不修改任何文件。
+## 复审清单
 
-## 复审检查清单
-
-### 合规性
-- [ ] 实现文件与 reference_project 无大段相同代码（用 diff 或逐函数对比）
-- [ ] 实现接口与 SPEC.md §2 完全一致（参数名、类型、dtype）
-- [ ] SPEC.md §3 所有行为约束均有对应测试覆盖
-- [ ] HUMAN_NOTES.md（若存在）的修正已在实现中体现
-
-### TDD 证据
-- [ ] tests/results_log.txt 中有该模块的 FAILED → PASSED 记录
-- [ ] validate_<module>.py 有通过记录
-
-### 文档链路
-- [ ] modules/<m>/TODO.md 全部 [x]
-- [ ] docs/architecture/TODO.md 该模块状态已更新
-
-## 输出格式
-在 `modules/<m>/TODO.md` 末尾追加：
-```markdown
-## Reviewer 复审 [DATE]
-结论: ✅ 通过 / ❌ 不通过
-问题: (若有)
+### 功能层
 ```
+□ 实现与 SPEC 接口签名完全一致（参数类型、返回类型）
+□ 所有 SPEC 约束在代码中有体现
+□ 边界条件覆盖（空输入、最大值、None）
+```
+
+### 安全层
+```
+□ ★ MEM_F_C_004：含 recv() 的函数，异常捕获是否精确？
+□ ★ MEM_F_C_002：所有 socket 发送是 bytes，不是 str？
+□ 线程安全：共享状态是否有锁？用的是 RLock 还是 Lock？
+□ 资源释放：socket/文件是否在 finally 中关闭？
+```
+
+### 质量层
+```
+□ 函数长度是否合理（单函数 >50行 考虑拆分）
+□ 命名是否清晰（无单字母变量，除循环 i/j）
+□ 注释是否解释"为什么"而非"做什么"
+```
+
+### 输出
+```
+[Reviewer 报告]
+通过项: X/Y
+问题：
+  - [严重] xxx：违反 MEM_F_C_004，需修复
+  - [中等] xxx：命名不清晰，建议改进
+  - [建议] xxx：可以简化
+结论: 通过 / 需修复后重审
+```
+
+触发：`@skills/validate-output/SKILL.md` 做集成测试
+若通过：触发 `@hooks/post-green/HOOK.md`
