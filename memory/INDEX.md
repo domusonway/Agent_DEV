@@ -1,4 +1,4 @@
-# Memory INDEX — SDD Framework v2
+# Memory INDEX — SDD Framework v1
 # 每次启动必读，按任务类型加载对应记忆
 
 ## ⚡ CRITICAL（所有任务必加载）
@@ -10,7 +10,7 @@
 | MEM_F_C_003 | 禁止修改测试用例 | tdd_impl | framework/critical/MEM_F_C_003.md |
 | **MEM_F_C_004** | **socket recv 必须精确捕获异常** | **network_code** | framework/critical/MEM_F_C_004.md |
 
-> **v2 新增说明**：MEM_F_C_004 现在通过两个机制强制生效：
+> **v1 新增说明**：MEM_F_C_004 现在通过两个机制强制生效：
 > 1. CONTEXT.md §3 反模式模板内置此规则
 > 2. network-guard hook 在写完网络代码后自动检查
 
@@ -27,7 +27,6 @@
 
 | 版本 | 日期 | 关键改进 |
 |------|------|---------|
-| v1.0 | 2026-03-03 | tinyhttpd 实验，发现 MEM_F_C_004 |
-| v2.0 | 2026-03-04 | 复杂度分流（L/M/H）；所有 skill/agent/hook 补全；MEM_F_C_004 内置到框架级；数据校准 D1-D5 |
+| v1.0 | 2026-03-03 | tinyhttpd 实验，发现 MEM_F_C_004 复杂度分流（L/M/H）；所有 skill/agent/hook 补全；MEM_F_C_004 内置到框架级；数据校准 D1-D5 |
 
 _记录总数：4 CRITICAL | 下次审查：2026-09-04_

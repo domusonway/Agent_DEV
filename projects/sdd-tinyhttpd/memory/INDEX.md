@@ -1,33 +1,19 @@
-# Memory 索引（INDEX.md）
-# ⚠️ Agent 必读 | 保持 <80 行 | 只记路，不记内容
+# 项目 Memory 索引 — sdd-tinyhttpd
+# 只记"此项目特有、换个项目就不适用"的经验
+# 通用经验已写入 ../../framework/memory/
 
-## ⚡ CRITICAL（每次 Agent 启动必加载）
-| ID | 标题 | 路径 |
+## 项目特有 Bug 修复经验
+
+| ID | 发现于 | 根因摘要 | 文件 |
+|----|--------|---------|------|
+| P_THD_001 | cgi_handler 实现 | CGI 先发 200 后检查可执行性导致头部混乱 | P_THD_001.md |
+| P_THD_002 | server E2E | POST body 读取偏移：parse_content_length 不消费空行 | P_THD_003.md |
+
+## 项目特有设计决策
+
+| ID | 决策 | 原因 |
 |----|------|------|
-| MEM_F_C_001 | 校验器必须先自测 | [→](framework/critical/MEM_F_C_001.md) |
-| MEM_F_C_002 | SPEC 必须包含 dtype | [→](framework/critical/MEM_F_C_002.md) |
-| MEM_F_C_003 | 禁止修改测试用例 | [→](framework/critical/MEM_F_C_003.md) |
-| MEM_F_C_004 | socket数据全程bytes | [→](framework/critical/MEM_F_C_004.md) |
-| MEM_F_C_005 | recv空bytes=连接关闭 | [→](framework/critical/MEM_F_C_005.md) |
+| D_THD_001 | 工作目录必须含 htdocs/ | C 原版使用相对路径，Python 版保持行为等价 |
+| D_THD_002 | CGI 用 Popen 不用 fork | Python 多线程环境 fork 危险（锁状态） |
 
-## 📋 IMPORTANT（按任务类型加载）
-| 任务类型 | 加载路径 | 条数 |
-|---------|---------|------|
-| c_to_python | framework/important/ | 2 |
-| http_server | domains/http_networking/ | 3 |
-| tdd_impl | framework/important/ | 4 |
-
-## 🔭 领域记忆（按项目领域加载）
-| 领域 | 索引 | 条数 |
-|------|------|------|
-| http_networking | [→](domains/http_networking/INDEX.md) | 3 |
-
-## 🏗️ 项目记忆（按当前项目加载）
-| 项目 | 索引 |
-|------|------|
-| tinyhttpd | [→](projects/tinyhttpd/INDEX.md) |
-
-_记录总数: 5 CRITICAL + 6 IMPORTANT | 下次淘汰检查: 2026-09-03_
-
-## 新增（2026-03-03 tinyhttpd验证）
-| MEM_F_C_004 | socket测试recv_all必须捕获ConnectionResetError | [→](framework/critical/MEM_F_C_004.md) |
+_记录数: 2 Bug + 2 决策 | 最后更新: 2026-03-05_

@@ -1,69 +1,77 @@
 ---
 module: request_parser
+id: M02
 version: 0.1.0
 status: locked
 ---
 
-# 模块规格 - request_parser
+# 模块规格：request_parser
 
-> 职责：从TCP socket读取HTTP请求并解析出结构化数据
+## 职责
+从 socket conn 中读取并解析 HTTP 请求行和头部，返回 Request 对象。
 
-## 1. 职责（单一职责）
-逐字节从socket读取HTTP请求行，标准化行结束符，解析method/url/query_string。
-
-## 2. 接口定义
+## 接口定义
 
 ```python
-def get_line(sock: socket.socket) -> str:
-    """从socket逐字节读取一行，标准化为以\n结尾的字符串（不含\r）。
-    Returns: 行内容str。连接关闭返回空串""。最大读取4096字节防溢出。
+from dataclasses import dataclass, field
+
+@dataclass
+class Request:
+    method: str        # "GET" / "POST" / "HEAD"，大写
+    url: str           # 原始 URL，含路径，不含 query string
+    query_string: str  # query string（不含 ?），无则 ""
+    headers: dict[str, str]  # 键全小写，如 "content-length"
+    http_version: str  # "HTTP/1.0" / "HTTP/1.1"
+
+def parse_request(conn: socket.socket) -> Request:
+    """
+    从 conn 读取 HTTP 请求行和全部头部（消费到空行 \r\n 为止）。
+    调用返回后 conn 指向 body 起点（如有）。
     """
 
-def parse_request_line(line: str) -> tuple[str, str, str]:
-    """解析HTTP请求行。
-    Args: line — get_line()返回的请求行，如 "GET /index.html HTTP/1.0\n"
-    Returns: (method, url, protocol) 三元组，均为大写method，url保留原始大小写
-    Raises: ValueError — 格式不合法（少于3个字段）
+def get_line(conn: socket.socket) -> str:
+    """逐字节读取一行，返回去掉 \r\n 的 str（内部使用）"""
+
+def parse_content_length(conn: socket.socket) -> int:
+    """
+    读取头部直到找到 Content-Length，返回其值（int）。
+    ⚠️ 注意：不消费空行，调用方读 body 前必须再调 drain_headers(conn)。
     """
 
-def consume_headers(sock: socket.socket) -> dict[str, str]:
-    """读取并丢弃/收集请求头，直到遇到空行（\n）为止。
-    Returns: dict of header_name(lower) → value，用于CGI获取Content-Length
-    """
+def drain_headers(conn: socket.socket) -> None:
+    """消费 conn 中剩余头部直到空行（\r\n），用于 body 读取前的对齐。"""
 ```
 
-### 输入规格
-| 参数 | 类型 | 说明 |
+## 输出规格
+
+| 返回 | 类型 | 说明 |
 |------|------|------|
-| sock | socket.socket | 已连接的客户端socket |
-| line | str | get_line()的输出，以\n结尾 |
+| Request | dataclass | method/url/query_string/headers/http_version 均为 str |
+| content_length | int | `parse_content_length` 的返回值 |
 
-### 输出规格
-| 函数 | 返回类型 | 说明 |
-|------|---------|------|
-| get_line | str | 以\n结尾，不含\r；空串表示连接断开 |
-| parse_request_line | tuple[str,str,str] | (METHOD大写, url, protocol) |
-| consume_headers | dict[str,str] | header名小写，值strip后的字符串 |
+## ⚠️ 本模块强制规则
 
-## 3. 行为约束
-- \r\n → \n，单独\r → \n，单独\n → \n（与C版get_line一致）
-- 超过4096字节截断（防DoS）
-- parse_request_line: method转大写，url不变，protocol去除\n
-- consume_headers: 遇到空行（只有\n）停止，返回已收集的headers dict
+- `get_line` 逐字节 `recv(1)`，必须检查 `b''`（连接关闭返回 `b''` 不抛异常）
+- `recv(1)` 的 except：`except (socket.timeout, ConnectionResetError, OSError)`
+- `parse_content_length` 返回后**空行仍在 socket 缓冲**，调用方必须先 `drain_headers`
 
-## 4. 参考项目对应
-| 功能 | 参考位置 | 备注 |
-|------|---------|------|
-| get_line | httpd.c:266-295 | 核心逐字节读取逻辑 |
-| 请求行解析 | httpd.c:51-100 | accept_request前半段 |
-| 消耗headers | httpd.c:102-105 | while strcmp("\n",buf) |
+## 行为约束
 
-## 5. 测试要点
-- get_line: \r\n → \n，单\r → \n，单\n → \n，空连接 → ""
-- parse_request_line: GET/POST/DELETE，带query_string的url，缺字段抛ValueError
-- consume_headers: 正常headers，Content-Length提取，空headers（直接空行）
+- method 转大写
+- URL 按 `?` 分割：`?` 前为 url，`?` 后为 query_string
+- 头部键转小写（`Content-Length` → `"content-length"`）
+- 非法请求行（分割后字段数 ≠ 3）：raise ValueError
 
-## 6. 依赖
+## 测试要点
+
+- GET 请求：method="GET", url="/index.html", query_string=""
+- GET 带 query：url="/cgi-bin/test.py", query_string="a=1&b=2"
+- POST 请求：headers 含 "content-length"
+- `drain_headers` 后 recv body 无多余前缀
+- `get_line` 在 conn 关闭时返回 ""（不抛异常）
+
+## 依赖
+
 - 依赖模块：无
-- 被依赖于：router, server
-- 第三方库：socket (标准库)
+- 被依赖于：M03(router), M06(server)
+- 第三方库：无（标准库 socket, dataclasses）

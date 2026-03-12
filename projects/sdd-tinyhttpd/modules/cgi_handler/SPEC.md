@@ -1,59 +1,69 @@
 ---
 module: cgi_handler
+id: M05
 version: 0.1.0
 status: locked
 ---
 
-# 模块规格 - cgi_handler
+# 模块规格：cgi_handler
 
-> 职责：执行CGI脚本，将HTTP请求转发给子进程，将子进程输出转发给client
+## 职责
+验证 CGI 脚本可执行性，设置环境变量，执行脚本，转发 stdout 到 conn。
 
-## 1. 职责
-解析请求头获取Content-Length（POST），启动CGI子进程，双向转发数据。
-
-## 2. 接口定义
+## 接口定义
 
 ```python
-def execute_cgi(client: socket.socket, path: str, method: str, query_string: str) -> None:
+import socket
+from ..request_parser import Request
+
+def execute_cgi(conn: socket.socket, request: Request) -> None:
     """
-    执行CGI脚本并将输出发送给client。
-    Args:
-        client: 客户端socket
-        path: CGI脚本路径（已含htdocs/前缀，已验证可执行）
-        method: "GET" 或 "POST"（大写）
-        query_string: GET时的查询字符串，POST时为""
+    1. 验证 htdocs/request.url 文件存在且可执行
+    2. 不可执行 → sendall(response.cannot_execute()) 并 return
+    3. 可执行 → sendall(b"HTTP/1.0 200 OK\r\n") 再执行
+    4. 用 subprocess.Popen 执行，stdin 传 POST body（如有）
+    5. stdout 直接 sendall 到 conn
     """
 ```
 
-### 输入规格
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| client | socket.socket | 客户端socket，stream在第一个header行 |
-| path | str | CGI脚本完整路径 |
-| method | str | "GET"或"POST"（大写） |
-| query_string | str | URL?后的部分，GET时有效 |
+## ⚠️ 本模块强制规则
 
-## 3. 行为约束
-- GET: 消耗并丢弃请求头，设置QUERY_STRING环境变量
-- POST: 消耗请求头，提取Content-Length；若无Content-Length→send_bad_request，返回
-- 发送"HTTP/1.0 200 OK\r\n"后启动子进程
-- 环境变量: REQUEST_METHOD, QUERY_STRING(GET) 或 CONTENT_LENGTH(POST)
-- POST: 从socket读取content_length字节写入子进程stdin
-- 子进程stdout全部转发给client socket
-- 子进程失败(启动失败)→send_cannot_execute
+- **先验证可执行性，再发状态行**（禁止先发 200 再检查）
+- 用 `subprocess.Popen`，**禁止** `os.fork()`（多线程环境）
+- POST body：先 `parse_content_length(conn)`，再 `drain_headers(conn)`，再 `conn.recv(content_length)`
+- sendall 参数必须是 **bytes**
 
-## 4. 参考项目对应
-| 功能 | 参考位置 |
-|------|---------|
-| execute_cgi() | httpd.c:178-265 |
+## 环境变量设置
 
-## 5. 测试要点
-- GET CGI: 设置QUERY_STRING，子进程输出转发
-- POST CGI: 读Content-Length，body写入stdin
-- 无Content-Length的POST: 返回400
-- CGI脚本不存在/不可执行: 返回500
+| 变量 | 值来源 |
+|------|--------|
+| REQUEST_METHOD | request.method |
+| QUERY_STRING | request.query_string |
+| CONTENT_LENGTH | str(content_length)（POST 时） |
+| SERVER_NAME | "localhost" |
 
-## 6. 依赖
-- 依赖模块：request_parser(consume_headers), response(send_bad_request, send_cannot_execute)
-- 被依赖于：router
-- 第三方库：subprocess, os (标准库)
+## 行为约束
+
+```
+if not os.path.isfile(path) or not os.access(path, os.X_OK):
+    conn.sendall(response.cannot_execute())
+    return
+
+conn.sendall(b"HTTP/1.0 200 OK\r\n")
+proc = subprocess.Popen(...)
+stdout, _ = proc.communicate(input=body)
+conn.sendall(stdout)
+```
+
+## 测试要点
+
+- 不存在文件：发送 500 响应，不发 200
+- 不可执行文件：发送 500，不执行
+- GET 请求：QUERY_STRING 设置正确，stdin 为空
+- POST 请求：body 正确传给 stdin，CONTENT_LENGTH 正确
+
+## 依赖
+
+- 依赖模块：M01(response), M02(request_parser)
+- 被依赖于：M06(server)
+- 标准库：os, subprocess

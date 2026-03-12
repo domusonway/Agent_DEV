@@ -1,67 +1,67 @@
 ---
 module: server
+id: M06
 version: 0.1.0
 status: locked
 ---
 
-# 模块规格 - server
+# 模块规格：server
 
-> 职责：TCP监听、接受连接、多线程分发请求
+## 职责
+TCP 主循环：绑定端口，accept 连接，每个连接开一个 daemon 线程执行 handle_client。
 
-## 1. 职责
-创建TCP服务器socket，accept连接，每个连接启动一个线程处理。
-
-## 2. 接口定义
+## 接口定义
 
 ```python
-def startup(port: int = 0) -> tuple[socket.socket, int]:
+import socket
+
+def handle_client(conn: socket.socket) -> None:
     """
-    创建TCP监听socket。
-    Args: port — 监听端口，0表示系统自动分配
-    Returns: (server_socket, actual_port)
-    Raises: OSError — socket/bind/listen失败
+    单个连接处理：parse → route → handler → close。
+    所有异常在此捕获，确保 conn.close() 在 finally 中执行。
     """
 
-def accept_request(client_sock: socket.socket, htdocs_root: str = "htdocs") -> None:
+def startup(port: int = 4000) -> None:
     """
-    处理单个HTTP请求（在线程中调用）。
-    解析请求行→dispatch→close socket。
-    捕获所有异常，确保socket被关闭。
-    """
-
-def run(port: int = 0, htdocs_root: str = "htdocs") -> None:
-    """
-    启动HTTP服务器主循环（阻塞）。
-    每个连接启动daemon=True的线程调用accept_request。
+    绑定端口，SO_REUSEADDR，无限循环 accept 连接，
+    每个连接启动 Thread(target=handle_client, daemon=True)。
     """
 ```
 
-### 输出规格 - startup
-| 返回 | 类型 | 说明 |
-|------|------|------|
-| server_socket | socket.socket | 已bind+listen的socket |
-| actual_port | int | 实际监听端口（port=0时为系统分配） |
+## ⚠️ 本模块强制规则
 
-## 3. 行为约束
-- startup: SO_REUSEADDR=True，listen backlog=5
-- accept_request: 异常时确保close client_sock（try/finally）
-- accept_request: 解析第一行失败（空行）→直接close，不发响应
-- run: 线程daemon=True，KeyboardInterrupt优雅退出
-- htdocs_root可配置，方便测试
+- `conn.close()` 必须在 **finally** 块中（保证连接释放）
+- `recv` 相关调用：`except (socket.timeout, ConnectionResetError, OSError)`
+- `startup` 的 server socket：`SO_REUSEADDR` 必须设置（避免 TIME_WAIT 阻塞测试）
+- Thread 必须设置 `daemon=True`（主线程退出时不阻塞）
 
-## 4. 参考项目对应
-| 功能 | 参考位置 |
-|------|---------|
-| startup() | httpd.c:356-384 |
-| accept_request() | httpd.c:51-128 |
-| main() pthread_create | httpd.c:407-432 |
+## handle_client 流程
 
-## 5. 测试要点
-- startup(0)返回可用端口
-- accept_request完整处理GET请求后关闭socket
-- 异常时socket仍被关闭
+```python
+def handle_client(conn: socket.socket) -> None:
+    try:
+        request = parse_request(conn)        # M02
+        handler = route(request)             # M03
+        handler(conn, request)               # M04 or M05
+    except Exception as e:
+        # 解析失败发 400
+        try:
+            conn.sendall(bad_request())
+        except OSError:
+            pass
+    finally:
+        conn.close()                         # 必须在 finally
+```
 
-## 6. 依赖
-- 依赖模块：request_parser, router
-- 被依赖于：无（顶层）
-- 第三方库：socket, threading (标准库)
+## 测试要点
+
+- `handle_client`：正常 GET 请求 → 调用 static_handler（可用 socketpair 测试）
+- `handle_client`：异常请求 → 发送 400 响应，不抛出
+- `startup`：`SO_REUSEADDR` 已设置
+- 多并发连接不互相阻塞（daemon Thread）
+
+## 依赖
+
+- 依赖模块：M02(parse_request), M03(route), M01(bad_request)
+- 被依赖于：无（顶层模块）
+- 标准库：socket, threading

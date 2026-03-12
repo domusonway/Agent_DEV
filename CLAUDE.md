@@ -1,6 +1,6 @@
-# SDD Framework v2 · 主入口
+# SDD Framework · 主入口
 
-> 版本: v2.0 | 验证项目: tinyhttpd + mini-redis(2×2对照实验)
+> 版本: v1.0 | 验证项目: tinyhttpd + mini-redis(2×2对照实验)
 > 设计原则: **复杂度驱动分流** · 轻量但有引导 · Memory预防优于事后修复
 
 ---

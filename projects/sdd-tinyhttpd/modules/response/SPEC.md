@@ -1,70 +1,85 @@
 ---
 module: response
+id: M01
 version: 0.1.0
 status: locked
 ---
 
-# 模块规格 - response
+# 模块规格：response
 
-> 职责：向client socket发送标准HTTP错误响应和成功响应头
+## 职责
+构建标准 HTTP/1.0 响应字节序列（状态行 + 头部 + body）。
 
-## 1. 职责
-构造并发送HTTP响应bytes到socket，包含状态行、固定响应头、Body。不关闭socket。
-
-## 2. 接口定义
+## 接口定义
 
 ```python
-SERVER_STRING = b"Server: jdbhttpd/0.1.0\r\n"
+def build_response(
+    status_code: int,
+    body: bytes = b"",
+    content_type: str = "text/html",
+    extra_headers: dict[str, str] | None = None,
+) -> bytes:
+    """
+    返回完整 HTTP/1.0 响应 bytes。
+    调用方直接 conn.sendall(build_response(...))。
+    """
 
-def send_ok_headers(client: socket.socket, filename: str = "") -> None:
-    """发送200 OK响应头（对应C版headers()）。"""
+def not_found() -> bytes:
+    """返回标准 404 响应 bytes"""
 
-def send_bad_request(client: socket.socket) -> None:
-    """发送400 Bad Request（POST无Content-Length时）。"""
+def bad_request() -> bytes:
+    """返回标准 400 响应 bytes"""
 
-def send_not_found(client: socket.socket) -> None:
-    """发送404 Not Found。"""
-
-def send_cannot_execute(client: socket.socket) -> None:
-    """发送500 Internal Server Error（CGI执行失败）。"""
-
-def send_unimplemented(client: socket.socket) -> None:
-    """发送501 Method Not Implemented。"""
+def cannot_execute() -> bytes:
+    """返回标准 500 响应 bytes（CGI 无法执行时）"""
 ```
 
-### 输出规格
-| 函数 | 发送bytes | 说明 |
-|------|---------|------|
-| send_ok_headers | b"HTTP/1.0 200 OK\r\n" + SERVER_STRING + Content-Type + \r\n | 无Body |
-| send_bad_request | b"HTTP/1.0 400 BAD REQUEST\r\n" + headers + HTML body | |
-| send_not_found | b"HTTP/1.0 404 NOT FOUND\r\n" + headers + HTML body | |
-| send_cannot_execute | b"HTTP/1.0 500 Internal Server Error\r\n" + headers + HTML body | |
-| send_unimplemented | b"HTTP/1.0 501 Method Not Implemented\r\n" + headers + HTML body | |
+## 输入/输出规格
 
-## 3. 行为约束
-- 所有函数使用socket.sendall()发送，确保完整发送
-- 所有响应行以\r\n结尾
-- 头部与body之间有空行\r\n
-- Content-Type统一为text/html
-- 不关闭socket（由调用方负责）
-- filename参数当前不影响Content-Type（与原版一致）
+| 参数 | 类型 | 约束 |
+|------|------|------|
+| status_code | int | 200 / 400 / 404 / 500 |
+| body | bytes | 默认 b""，调用方负责编码 |
+| content_type | str | MIME 字符串，默认 text/html |
+| extra_headers | dict[str,str] \| None | 附加头部，如 Content-Length |
 
-## 4. 参考项目对应
-| 功能 | 参考位置 |
-|------|---------|
-| headers() | httpd.c:296-310 |
-| bad_request() | httpd.c:130-145 |
-| not_found() | httpd.c:311-334 |
-| cannot_execute() | httpd.c:158-171 |
-| unimplemented() | httpd.c:385-406 |
+| 返回值 | 类型 | 说明 |
+|--------|------|------|
+| response | **bytes** | 完整 HTTP 响应，全程 bytes，禁止混入 str |
 
-## 5. 测试要点
-- 每个函数发送的bytes以正确状态码开头
-- 所有行结束符为\r\n
-- 头部和body之间有空行
-- socket接收到的bytes可被HTTP解析器识别
+## ⚠️ 本模块强制规则
 
-## 6. 依赖
+- 所有响应行以 `\r\n` 结尾，**不是** `\n`
+- 返回值必须是 `bytes`，调用方 `conn.sendall()` 不需要 encode
+- `Content-Length` 值必须是 `len(body)`（bytes 长度，非 str 长度）
+
+## 行为约束
+
+```
+HTTP/1.0 {status_code} {status_text}\r\n
+Content-Type: {content_type}\r\n
+Content-Length: {len(body)}\r\n
+{extra_headers ...}\r\n
+\r\n
+{body}
+```
+
+状态码文本映射：
+- 200 → "OK"
+- 400 → "BAD REQUEST"  
+- 404 → "NOT FOUND"
+- 500 → "INTERNAL SERVER ERROR"
+
+## 测试要点
+
+- `build_response(200, b"hello")` 包含 `b"HTTP/1.0 200 OK\r\n"`
+- 响应以 `b"\r\n\r\n"` 分隔头和 body
+- `Content-Length` 值等于 `len(body)`
+- `not_found()` 返回 bytes 且含 `b"404"`
+- 空 body 时 `Content-Length: 0`
+
+## 依赖
+
 - 依赖模块：无
-- 被依赖于：static_handler, cgi_handler, router, server
-- 第三方库：socket (标准库)
+- 被依赖于：M04(static_handler), M05(cgi_handler)
+- 第三方库：无（标准库）

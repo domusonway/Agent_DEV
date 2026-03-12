@@ -1,8 +1,12 @@
-<html>
-<head><title>Tinyhttpd Python</title></head>
+<!DOCTYPE html>
+<html lang="zh">
+<head><meta charset="UTF-8"><title>tinyhttpd</title></head>
 <body>
-<h1>Hello from Tinyhttpd Python Rewrite!</h1>
-<p>This is a Python reimplementation of the C tinyhttpd server.</p>
-<a href="/cgi-bin/color.cgi?color=red">CGI Test (color=red)</a>
+  <h1>tinyhttpd (Python)</h1>
+  <p>静态文件服务正常。</p>
+  <form method="post" action="/cgi-bin/color.cgi">
+    颜色: <input name="color" value="red">
+    <input type="submit" value="提交">
+  </form>
 </body>
 </html>
