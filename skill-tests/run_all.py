@@ -1,20 +1,40 @@
 #!/usr/bin/env python3
 """
-DEV SDD Framework Skill Tests Runner
-用法: python3 skill-tests/run_all.py [skill_name]
+DEV SDD Framework Skill Tests
+用法：
+  python3 skill-tests/run_all.py              # Layer 1（文档结构，无 API）
+  python3 skill-tests/run_all.py --layer 2    # + 触发测试
+  python3 skill-tests/run_all.py --layer 3    # 全量（行为测试）
+  python3 skill-tests/run_all.py --layer 3 --skill tdd-cycle   # 只测指定 skill
+  python3 skill-tests/run_all.py --layer 3 --regenerate        # 先增量生成再测
+
+Layer 2/3 的测试用例从 skill-tests/generated/cases.json 读取。
+cases.json 由 generate_cases.py 生成，可提交到 git，无需手动维护。
 """
-import subprocess
+
 import sys
 import os
 import json
+import time
+import argparse
+import subprocess
+import urllib.request
+import urllib.error
 from pathlib import Path
 from datetime import datetime
 
+FRAMEWORK_ROOT = Path(__file__).parent.parent
 CASES_DIR = Path(__file__).parent / "cases"
+GENERATED_DIR = Path(__file__).parent / "generated"
 REPORTS_DIR = Path(__file__).parent / "reports"
 REPORTS_DIR.mkdir(exist_ok=True)
 
-TEST_FILES = [
+CASES_FILE = GENERATED_DIR / "cases.json"
+
+API_URL = "https://api.anthropic.com/v1/messages"
+MODEL = "claude-sonnet-4-20250514"
+
+LAYER1_FILES = [
     "test_complexity_assess.py",
     "test_tdd_cycle.py",
     "test_diagnose_bug.py",
@@ -25,66 +45,248 @@ TEST_FILES = [
     "test_hook_stuck_detector.py",
 ]
 
+ROUTING_SYSTEM = """
+你是一个遵循 DEV SDD 框架的 AI 编程助手。
 
-def run_test(test_file: str) -> dict:
+框架的"按需加载地图"如下：
+
+| 当前任务 | 读取路径 |
+|---------|---------|
+| 收到开发任务 | .claude/skills/complexity-assess/SKILL.md |
+| TDD 实现阶段 | .claude/skills/tdd-cycle/SKILL.md |
+| 出现 Bug / RED > 2次 | .claude/skills/diagnose-bug/SKILL.md |
+| 所有测试 GREEN 后 | .claude/skills/validate-output/SKILL.md |
+| 项目完成后 | .claude/skills/memory-update/SKILL.md |
+| H 模式多模块规划 | .claude/agents/planner.md |
+| 写任何网络代码后 | .claude/hooks/network-guard/HOOK.md（立即执行）|
+| RED 超过 2 次 | .claude/hooks/stuck-detector/HOOK.md（立即执行）|
+| 所有测试 GREEN | .claude/hooks/post-green/HOOK.md（立即执行）|
+
+当我描述一个场景，请告诉我应该读取哪个文件及原因。
+""".strip()
+
+
+def call_model(user_message, system="", max_tokens=600, retries=2):
+    payload = {
+        "model": MODEL,
+        "max_tokens": max_tokens,
+        "messages": [{"role": "user", "content": user_message}],
+    }
+    if system:
+        payload["system"] = system
+    for attempt in range(retries + 1):
+        try:
+            data = json.dumps(payload).encode()
+            req = urllib.request.Request(
+                API_URL, data=data,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                result = json.loads(resp.read())
+                return result["content"][0]["text"]
+        except urllib.error.HTTPError as e:
+            body = e.read().decode()
+            if attempt < retries and e.code in (429, 529):
+                time.sleep(5 * (attempt + 1))
+                continue
+            raise RuntimeError(f"API {e.code}: {body[:150]}") from e
+        except Exception as e:
+            if attempt < retries:
+                time.sleep(3)
+                continue
+            raise
+
+
+def judge(response, criterion):
+    prompt = f"""你是严格的测试评估器。判断【模型响应】是否满足【验证标准】。
+
+【验证标准】
+{criterion}
+
+【模型响应】
+{response}
+
+仅输出 JSON：{{"passed": true或false, "reason": "一句话原因"}}"""
+    result = call_model(prompt, max_tokens=150)
+    try:
+        clean = result.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
+        d = json.loads(clean)
+        return bool(d["passed"]), str(d.get("reason", ""))
+    except Exception:
+        lower = result.lower()
+        if '"passed": true' in lower or '"passed":true' in lower:
+            return True, result
+        return False, f"无法解析: {result[:80]}"
+
+
+def load_cases(skill_filter=None):
+    if not CASES_FILE.exists():
+        return {}
+    data = json.loads(CASES_FILE.read_text())
+    skills = data.get("skills", {})
+    if skill_filter:
+        skills = {k: v for k, v in skills.items() if skill_filter in k}
+    return skills
+
+
+def run_l1_file(test_file):
     path = CASES_DIR / test_file
     if not path.exists():
-        return {"name": test_file, "status": "MISSING", "output": "文件不存在"}
-
+        return {"name": test_file, "status": "MISSING", "stdout": "", "stderr": "文件不存在"}
     result = subprocess.run(
         [sys.executable, str(path)],
-        capture_output=True, text=True, timeout=30
+        capture_output=True, text=True, timeout=10
     )
-    status = "PASS" if result.returncode == 0 else "FAIL"
     return {
         "name": test_file,
-        "status": status,
-        "returncode": result.returncode,
+        "status": "PASS" if result.returncode == 0 else "FAIL",
         "stdout": result.stdout,
         "stderr": result.stderr,
     }
 
 
-def main():
-    filter_name = sys.argv[1] if len(sys.argv) > 1 else None
-    tests = [t for t in TEST_FILES if filter_name is None or filter_name in t]
-
-    print("=" * 50)
-    print("DEV SDD Framework Skill Tests")
-    print("=" * 50)
-
+def run_layer1(skill_filter=None):
+    files = LAYER1_FILES
+    if skill_filter:
+        files = [f for f in files if skill_filter in f]
+    print(f"\n{'─'*56}")
+    print(f"  Layer 1 · 文档结构测试（无 API）")
+    print(f"{'─'*56}")
     results = []
-    for test_file in tests:
+    for f in files:
         try:
-            r = run_test(test_file)
+            r = run_l1_file(f)
         except subprocess.TimeoutExpired:
-            r = {"name": test_file, "status": "TIMEOUT", "output": "超时（>30s）"}
+            r = {"name": f, "status": "TIMEOUT", "stdout": "", "stderr": "超时"}
+        icon = "✅" if r["status"] == "PASS" else "❌"
+        name = f.replace("test_", "").replace(".py", "")
+        print(f"  {icon} {name:<36} {r['status']}")
+        results.append({"layer": 1, **r})
+    return results
 
-        icon = {"PASS": "✅", "FAIL": "❌", "MISSING": "⚠️", "TIMEOUT": "⏱️"}.get(r["status"], "?")
-        name = r["name"].replace(".py", "").replace("test_", "")
-        print(f"{icon} {name:<30} {r['status']}")
-        if r["status"] == "FAIL":
-            stderr = r.get("stderr", "")
-            if stderr:
-                print(f"   └─ {stderr.strip()[:120]}")
-        results.append(r)
 
-    passed = sum(1 for r in results if r["status"] == "PASS")
-    total = len(results)
-    print("=" * 50)
-    print(f"结果: {passed}/{total} 通过")
+def run_layer2(cases):
+    print(f"\n{'─'*56}")
+    print(f"  Layer 2 · 触发测试（Skill 选择正确性）")
+    print(f"{'─'*56}")
+    results = []
+    for skill_id, skill_data in cases.items():
+        for case in skill_data.get("layer2", []):
+            name = f"[{skill_id}] {case['name']}"
+            try:
+                response = call_model(f"场景描述：{case['scenario']}", system=ROUTING_SYSTEM)
+                passed, reason = judge(response, case["criterion"])
+                status = "PASS" if passed else "FAIL"
+                print(f"  {'✅' if passed else '❌'} {name}")
+                if not passed:
+                    print(f"       原因: {reason}")
+                results.append({"layer": 2, "skill": skill_id, "name": name,
+                                 "status": status, "reason": reason})
+            except Exception as e:
+                print(f"  ⚠️  {name} [ERROR: {str(e)[:60]}]")
+                results.append({"layer": 2, "skill": skill_id, "name": name,
+                                 "status": "ERROR", "reason": str(e)})
+    return results
 
-    # 保存报告
+
+def run_layer3(cases):
+    print(f"\n{'─'*56}")
+    print(f"  Layer 3 · 行为测试（约束遵守验证）")
+    print(f"{'─'*56}")
+    results = []
+    for skill_id, skill_data in cases.items():
+        l3_cases = skill_data.get("layer3", [])
+        if not l3_cases:
+            continue
+        print(f"\n  ── {skill_id}")
+        for case in l3_cases:
+            name = case["name"]
+            system = case.get("system_content", "")
+            try:
+                response = call_model(case["prompt"], system=system)
+                passed, reason = judge(response, case["criterion"])
+                status = "PASS" if passed else "FAIL"
+                rule_src = case.get("rule_source", "")
+                print(f"  {'✅' if passed else '❌'} {name}")
+                if rule_src:
+                    print(f"       规则来源: 「{rule_src}」")
+                if not passed:
+                    print(f"       原因: {reason}")
+                results.append({"layer": 3, "skill": skill_id, "name": name,
+                                 "status": status, "reason": reason,
+                                 "rule_source": rule_src})
+            except Exception as e:
+                print(f"  ⚠️  {name} [ERROR: {str(e)[:60]}]")
+                results.append({"layer": 3, "skill": skill_id, "name": name,
+                                 "status": "ERROR", "reason": str(e)})
+    return results
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--layer", type=int, default=1, choices=[1, 2, 3])
+    parser.add_argument("--skill", type=str, default=None)
+    parser.add_argument("--regenerate", action="store_true",
+                        help="执行前先增量更新 cases.json")
+    args = parser.parse_args()
+
+    if args.regenerate and args.layer >= 2:
+        print("⚙  增量更新 cases.json ...")
+        cmd = [sys.executable, str(Path(__file__).parent / "generate_cases.py"), "--diff"]
+        if args.skill:
+            cmd += ["--skill", args.skill]
+        subprocess.run(cmd, check=False)
+        print()
+
+    print("=" * 56)
+    print("  DEV SDD Framework — Skill Tests")
+    print(f"  Layer: {args.layer}  |  {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    if args.skill:
+        print(f"  Filter: {args.skill}")
+    print("=" * 56)
+
+    all_results = []
+    all_results += run_layer1(args.skill)
+
+    if args.layer >= 2:
+        cases = load_cases(args.skill)
+        if not cases:
+            print(f"\n  ⚠️  未找到 cases.json，请先执行:")
+            print(f"     python3 skill-tests/generate_cases.py")
+        else:
+            all_results += run_layer2(cases)
+
+    if args.layer >= 3:
+        cases = load_cases(args.skill)
+        if cases:
+            all_results += run_layer3(cases)
+
+    passed = sum(1 for r in all_results if r["status"] == "PASS")
+    total = len(all_results)
+    failed = [r for r in all_results if r["status"] not in ("PASS",)]
+
+    print(f"\n{'='*56}")
+    print(f"  总结: {passed}/{total} 通过  {'✅' if passed == total else '❌'}")
+    if failed:
+        print(f"\n  失败项:")
+        for r in failed:
+            print(f"    [L{r['layer']}] {r['name']} [{r['status']}]")
+
+    ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+    report_path = REPORTS_DIR / f"report_L{args.layer}_{ts}.json"
     report = {
         "timestamp": datetime.now().isoformat(),
+        "layer": args.layer,
+        "skill_filter": args.skill,
         "passed": passed,
         "total": total,
-        "results": results,
+        "pass_rate": f"{passed/total*100:.1f}%" if total else "0%",
+        "results": all_results,
     }
-    report_path = REPORTS_DIR / f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2))
-    print(f"报告已保存: {report_path}")
-
+    print(f"\n  报告: {report_path}")
+    print("=" * 56)
     sys.exit(0 if passed == total else 1)
 
 

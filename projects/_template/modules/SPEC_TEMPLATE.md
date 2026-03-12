@@ -1,44 +1,45 @@
 # SPEC: {{MODULE_NAME}}
-> 创建日期: {{DATE}} | 状态: 草稿
+> 最后更新: {{DATE}} | 状态: 草稿/确认/实现中/完成
 
 ---
 
 ## 模块职责
-[一句话描述这个模块做什么]
+{{ONE_LINE_DESCRIPTION}}
 
 ---
 
 ## 接口定义
 
+### 函数/类签名
 ```python
-def function_name(
-    param1: Type1,
-    param2: Type2,
-) -> ReturnType:
+def {{FUNCTION_NAME}}(
+    {{PARAM_1}}: {{TYPE_1}},
+    {{PARAM_2}}: {{TYPE_2}},
+) -> {{RETURN_TYPE}}:
     """
-    [功能描述]
+    {{DOCSTRING}}
     
     Args:
-        param1: 说明
-        param2: 说明
+        {{PARAM_1}}: {{PARAM_1_DESC}}
+        {{PARAM_2}}: {{PARAM_2_DESC}}
     
     Returns:
-        说明（明确 bytes/str/int/dict）
+        {{RETURN_DESC}}
     
     Raises:
-        ValueError: 何时抛出
+        {{EXCEPTION_1}}: {{WHEN}}
     """
 ```
 
 ---
 
-## 接口表（必须明确 dtype）
+## 接口表（精确 dtype，不可含糊）
 
-| 方向 | 名称 | 类型 | 说明 |
-|------|------|------|------|
-| 输入 | param1 | **str** | |
-| 输出 | 返回值 | **bytes** | 明确写 bytes 或 str，不能含糊 |
-| 异常 | ValueError | Exception | 何时触发 |
+| 参数/返回 | 名称 | 类型 | 说明 |
+|---------|------|------|------|
+| 输入 | {{PARAM_1}} | {{TYPE}} | {{DESC}} |
+| 输出 | 返回值 | **{{EXACT_TYPE}}** | {{DESC}} |
+| 异常 | {{EXCEPTION}} | Exception | {{WHEN}} |
 
 ---
 
@@ -46,32 +47,33 @@ def function_name(
 
 ### 正常路径
 ```
-输入: 
-输出: 
+输入: {{EXAMPLE_INPUT}}
+输出: {{EXAMPLE_OUTPUT}}
 ```
 
 ### 边界情况
 ```
-情况: 空输入
-预期: 
+情况1: {{EDGE_CASE_1}}
+预期: {{EXPECTED_1}}
+
+情况2: {{EDGE_CASE_2}}
+预期: {{EXPECTED_2}}
 ```
 
 ### 错误路径
 ```
-错误: 非法格式
-预期: 抛出 ValueError
+错误1: {{ERROR_CASE_1}}
+预期: 抛出 {{EXCEPTION_TYPE}}，消息含 "{{MESSAGE_FRAGMENT}}"
 ```
 
 ---
 
-## 依赖关系
-- 依赖: （无 / 模块名）
-- 被依赖: （无 / 模块名）
+## 依赖
+- 依赖模块: {{DEPENDENCIES}}
+- 被依赖: {{DEPENDENTS}}
 
 ---
 
 ## 验收标准
-- [ ] 正常路径测试通过
-- [ ] 边界情况测试通过
-- [ ] 错误路径测试通过
-- [ ] 返回类型与此 SPEC 精确一致
+- [ ] {{ACCEPTANCE_1}}
+- [ ] {{ACCEPTANCE_2}}
