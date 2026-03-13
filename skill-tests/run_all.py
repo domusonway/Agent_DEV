@@ -32,6 +32,9 @@ REPORTS_DIR.mkdir(exist_ok=True)
 CASES_FILE = GENERATED_DIR / "cases.json"
 
 API_URL = "https://api.anthropic.com/v1/messages"
+_BASE = os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com").rstrip("/")
+API_URL = f"{_BASE}/v1/messages"
+_API_KEY = os.environ.get("ANTHROPIC_AUTH_TOKEN") or os.environ.get("ANTHROPIC_API_KEY", "")
 MODEL = "claude-sonnet-4-20250514"
 
 LAYER1_FILES = [
@@ -79,7 +82,7 @@ def call_model(user_message, system="", max_tokens=600, retries=2):
             data = json.dumps(payload).encode()
             req = urllib.request.Request(
                 API_URL, data=data,
-                headers={"Content-Type": "application/json"},
+                headers={"Content-Type": "application/json", "x-api-key": _API_KEY, "anthropic-version": "2023-06-01"},
                 method="POST",
             )
             with urllib.request.urlopen(req, timeout=60) as resp:

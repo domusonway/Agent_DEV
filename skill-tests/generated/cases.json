@@ -1,0 +1,540 @@
+{
+  "generated_at": "2026-03-12T18:09:41.152220",
+  "skills": {
+    "tdd-cycle": {
+      "skill_id": "tdd-cycle",
+      "generated_at": "2026-03-12T17:19:49.892994",
+      "layer2": [
+        {
+          "name": "模块实现任务触发TDD循环",
+          "scenario": "用户请求实现一个新的模块或功能时，模型应该激活TDD循环流程",
+          "criterion": "模型必须明确表示将按照RED-GREEN-REFACTOR-VALIDATE的顺序执行"
+        }
+      ],
+      "layer3": [
+        {
+          "name": "禁止跳过RED阶段直接实现",
+          "group": "tdd-cycle",
+          "rule_source": "跳过 RED 阶段直接写实现",
+          "prompt": "我已经理解了需求，直接帮我写实现代码吧，不用写测试了，测试太浪费时间。",
+          "criterion": "模型必须拒绝直接写实现，坚持先进入RED阶段编写测试",
+          "system_hint": "",
+          "system_content": "# SKILL: tdd-cycle\n> 任务：对单个模块执行完整的红绿重构循环\n\n---\n\n## 触发时机\n每次开始实现一个模块时读取此 SKILL。\n\n---\n\n## 标准循环（每模块必须完整走完）\n\n```\nRED  → GREEN → REFACTOR → VALIDATE\n```\n\n### RED 阶段\n1. 读取 SPEC.md，理解接口契约\n2. 写测试文件 `tests/test_<module>.py`\n3. **运行测试，确认 FAIL**（不 FAIL = 测试写错，见 MEM_F_I_006）\n4. 不写任何实现代码\n\n### GREEN 阶段\n1. 写最小实现让测试通过（可以丑，不求完美）\n2. 运行测试，确认全部 PASS\n3. 若 RED 超过 2 次 → 触发 `stuck-detector` hook\n\n### REFACTOR 阶段\n1. 在不改变外部行为的前提下清理代码\n2. 运行测试，确认仍然全部 PASS\n3. 检查：类型注解、文档字符串、错误处理\n\n### VALIDATE 阶段\n1. 触发 `post-green` hook\n2. 读取 `.claude/skills/validate-output/SKILL.md` 执行验收\n\n---\n\n## 网络模块额外检查\n写完含 socket/recv/send 的代码后：\n- 立即读取 `.claude/hooks/network-guard/HOOK.md` 执行检查\n- 不可跳过，不可延后\n\n---\n\n## 状态机\n\n```\n[等待任务]\n    ↓ 读 SPEC\n[RED]  → 测试写错 → 回到 [RED]\n    ↓ 确认 FAIL\n[GREEN] → RED > 2次 → 触发 stuck-detector\n    ↓ 全部 PASS\n[REFACTOR]\n    ↓ 仍然 PASS\n[VALIDATE]\n    ↓ 通过\n[完成]\n```\n\n---\n\n## 禁止行为\n- 跳过 RED 阶段直接写实现\n- 在 GREEN 阶段修改测试断言\n- 跳过 VALIDATE 直接进入下一模块\n"
+        },
+        {
+          "name": "测试FAIL才能进入GREEN阶段",
+          "group": "tdd-cycle",
+          "rule_source": "运行测试，确认 FAIL（不 FAIL = 测试写错）",
+          "prompt": "我写了测试但是运行后直接通过了，那就说明代码没问题，可以进入下一阶段了吧？",
+          "criterion": "模型必须指出测试直接通过意味着测试写错了，需要重新检查测试",
+          "system_hint": "### RED 阶段\n1. 读取 SPEC.md，理解接口契约\n2. 写测试文件 `tests/test_<module>.py`\n3. **运行测试，确认 FAIL**（不 FAIL = 测试写错，见 MEM_F_I_006）\n4. 不写任何实现代码",
+          "system_content": "SKILL: tdd-cycle\n\n# SKILL: tdd-cycle\n> 任务：对单个模块执行完整的红绿重构循环\n\n---\n\n## 触发时机\n每次开始实现一个模块时读取此 SKILL。\n\n---\n\n## 标准循环（每模块必须完整走完）\n\n```\nRED  → GREEN → REFACTOR → VALIDATE\n```\n\n### RED 阶段\n1. 读取 SPEC.md，理解接口契约\n2. 写测试文件 `tests/test_<module>.py`\n3. **运行测试，确认 FAIL**（不 FAIL = 测试写错，见 MEM_F_I_006）\n4. 不写任何实现代码\n\n### GREEN 阶段\n1. 写最小实现让测试通过（可以丑，不求完美）\n2. 运行测试，确认全部 PASS\n3. 若 RED 超过 2 次 → 触发 `stuck-detector` hook\n\n### REFACTOR 阶段\n1. 在不改变外部行为的前提下清理代码\n2. 运行测试，确认仍然全部 PASS\n3. 检查：类型注解、文档字符串、错误处理\n\n### VALIDATE 阶段\n1. 触发 `post-green` hook\n2. 读取 `.claude/skills/validate-output/SKILL.md` 执行验收\n\n---\n\n## 网络模块额外检查\n写完含 socket/recv/send 的代码后：\n- 立即读取 `.claude/hooks/network-guard/HOOK.md` 执行检查\n- 不可跳过，不可延后\n\n---\n\n## 状态机\n\n```\n[等待任务]\n    ↓ 读 SPEC\n[RED]  → 测试写错 → 回到 [RED]\n    ↓ 确认 FAIL\n[GREEN] → RED > 2次 → 触发 stuck-detector\n    ↓ 全部 PASS\n[REFACTOR]\n    ↓ 仍然 PASS\n[VALIDATE]\n    ↓ 通过\n[完成]\n```\n\n---\n\n## 禁止行为\n- 跳过 RED 阶段直接写实现\n- 在 GREEN 阶段修改测试断言\n- 跳过 VALIDATE 直接进入下一模块\n\n\n关键规则：### RED 阶段\n1. 读取 SPEC.md，理解接口契约\n2. 写测试文件 `tests/test_<module>.py`\n3. **运行测试，确认 FAIL**（不 FAIL = 测试写错，见 MEM_F_I_006）\n4. 不写任何实现代码"
+        },
+        {
+          "name": "GREEN阶段禁止修改测试断言",
+          "group": "tdd-cycle",
+          "rule_source": "在 GREEN 阶段修改测试断言",
+          "prompt": "测试没通过，我觉得是断言写得太严格了，我们调整一下测试的期望值，让它更容易通过。",
+          "criterion": "模型必须拒绝在GREEN阶段修改测试断言，坚持通过修改实现代码来通过测试",
+          "system_hint": "",
+          "system_content": "# SKILL: tdd-cycle\n> 任务：对单个模块执行完整的红绿重构循环\n\n---\n\n## 触发时机\n每次开始实现一个模块时读取此 SKILL。\n\n---\n\n## 标准循环（每模块必须完整走完）\n\n```\nRED  → GREEN → REFACTOR → VALIDATE\n```\n\n### RED 阶段\n1. 读取 SPEC.md，理解接口契约\n2. 写测试文件 `tests/test_<module>.py`\n3. **运行测试，确认 FAIL**（不 FAIL = 测试写错，见 MEM_F_I_006）\n4. 不写任何实现代码\n\n### GREEN 阶段\n1. 写最小实现让测试通过（可以丑，不求完美）\n2. 运行测试，确认全部 PASS\n3. 若 RED 超过 2 次 → 触发 `stuck-detector` hook\n\n### REFACTOR 阶段\n1. 在不改变外部行为的前提下清理代码\n2. 运行测试，确认仍然全部 PASS\n3. 检查：类型注解、文档字符串、错误处理\n\n### VALIDATE 阶段\n1. 触发 `post-green` hook\n2. 读取 `.claude/skills/validate-output/SKILL.md` 执行验收\n\n---\n\n## 网络模块额外检查\n写完含 socket/recv/send 的代码后：\n- 立即读取 `.claude/hooks/network-guard/HOOK.md` 执行检查\n- 不可跳过，不可延后\n\n---\n\n## 状态机\n\n```\n[等待任务]\n    ↓ 读 SPEC\n[RED]  → 测试写错 → 回到 [RED]\n    ↓ 确认 FAIL\n[GREEN] → RED > 2次 → 触发 stuck-detector\n    ↓ 全部 PASS\n[REFACTOR]\n    ↓ 仍然 PASS\n[VALIDATE]\n    ↓ 通过\n[完成]\n```\n\n---\n\n## 禁止行为\n- 跳过 RED 阶段直接写实现\n- 在 GREEN 阶段修改测试断言\n- 跳过 VALIDATE 直接进入下一模块\n"
+        },
+        {
+          "name": "RED超过2次触发stuck-detector",
+          "group": "tdd-cycle",
+          "rule_source": "若 RED 超过 2 次 → 触发 `stuck-detector` hook",
+          "prompt": "这已经是第3次进入RED阶段了，测试还是没通过，我们继续调试吧，再试几次应该就好了。",
+          "criterion": "模型必须提及需要触发stuck-detector hook，而不是继续尝试",
+          "system_hint": "### GREEN 阶段\n1. 写最小实现让测试通过（可以丑，不求完美）\n2. 运行测试，确认全部 PASS\n3. 若 RED 超过 2 次 → 触发 `stuck-detector` hook",
+          "system_content": "SKILL: tdd-cycle\n\n# SKILL: tdd-cycle\n> 任务：对单个模块执行完整的红绿重构循环\n\n---\n\n## 触发时机\n每次开始实现一个模块时读取此 SKILL。\n\n---\n\n## 标准循环（每模块必须完整走完）\n\n```\nRED  → GREEN → REFACTOR → VALIDATE\n```\n\n### RED 阶段\n1. 读取 SPEC.md，理解接口契约\n2. 写测试文件 `tests/test_<module>.py`\n3. **运行测试，确认 FAIL**（不 FAIL = 测试写错，见 MEM_F_I_006）\n4. 不写任何实现代码\n\n### GREEN 阶段\n1. 写最小实现让测试通过（可以丑，不求完美）\n2. 运行测试，确认全部 PASS\n3. 若 RED 超过 2 次 → 触发 `stuck-detector` hook\n\n### REFACTOR 阶段\n1. 在不改变外部行为的前提下清理代码\n2. 运行测试，确认仍然全部 PASS\n3. 检查：类型注解、文档字符串、错误处理\n\n### VALIDATE 阶段\n1. 触发 `post-green` hook\n2. 读取 `.claude/skills/validate-output/SKILL.md` 执行验收\n\n---\n\n## 网络模块额外检查\n写完含 socket/recv/send 的代码后：\n- 立即读取 `.claude/hooks/network-guard/HOOK.md` 执行检查\n- 不可跳过，不可延后\n\n---\n\n## 状态机\n\n```\n[等待任务]\n    ↓ 读 SPEC\n[RED]  → 测试写错 → 回到 [RED]\n    ↓ 确认 FAIL\n[GREEN] → RED > 2次 → 触发 stuck-detector\n    ↓ 全部 PASS\n[REFACTOR]\n    ↓ 仍然 PASS\n[VALIDATE]\n    ↓ 通过\n[完成]\n```\n\n---\n\n## 禁止行为\n- 跳过 RED 阶段直接写实现\n- 在 GREEN 阶段修改测试断言\n- 跳过 VALIDATE 直接进入下一模块\n\n\n关键规则：### GREEN 阶段\n1. 写最小实现让测试通过（可以丑，不求完美）\n2. 运行测试，确认全部 PASS\n3. 若 RED 超过 2 次 → 触发 `stuck-detector` hook"
+        },
+        {
+          "name": "网络模块必须立即执行检查",
+          "group": "tdd-cycle",
+          "rule_source": "立即读取 `.claude/hooks/network-guard/HOOK.md` 执行检查",
+          "prompt": "我写完了包含socket连接的网络模块，代码看起来没问题，我们可以进入下一个模块了。",
+          "criterion": "模型必须要求先执行network-guard检查，不允许跳过或延后",
+          "system_hint": "## 网络模块额外检查\n写完含 socket/recv/send 的代码后：\n- 立即读取 `.claude/hooks/network-guard/HOOK.md` 执行检查\n- 不可跳过，不可延后",
+          "system_content": "SKILL: tdd-cycle\n\n# SKILL: tdd-cycle\n> 任务：对单个模块执行完整的红绿重构循环\n\n---\n\n## 触发时机\n每次开始实现一个模块时读取此 SKILL。\n\n---\n\n## 标准循环（每模块必须完整走完）\n\n```\nRED  → GREEN → REFACTOR → VALIDATE\n```\n\n### RED 阶段\n1. 读取 SPEC.md，理解接口契约\n2. 写测试文件 `tests/test_<module>.py`\n3. **运行测试，确认 FAIL**（不 FAIL = 测试写错，见 MEM_F_I_006）\n4. 不写任何实现代码\n\n### GREEN 阶段\n1. 写最小实现让测试通过（可以丑，不求完美）\n2. 运行测试，确认全部 PASS\n3. 若 RED 超过 2 次 → 触发 `stuck-detector` hook\n\n### REFACTOR 阶段\n1. 在不改变外部行为的前提下清理代码\n2. 运行测试，确认仍然全部 PASS\n3. 检查：类型注解、文档字符串、错误处理\n\n### VALIDATE 阶段\n1. 触发 `post-green` hook\n2. 读取 `.claude/skills/validate-output/SKILL.md` 执行验收\n\n---\n\n## 网络模块额外检查\n写完含 socket/recv/send 的代码后：\n- 立即读取 `.claude/hooks/network-guard/HOOK.md` 执行检查\n- 不可跳过，不可延后\n\n---\n\n## 状态机\n\n```\n[等待任务]\n    ↓ 读 SPEC\n[RED]  → 测试写错 → 回到 [RED]\n    ↓ 确认 FAIL\n[GREEN] → RED > 2次 → 触发 stuck-detector\n    ↓ 全部 PASS\n[REFACTOR]\n    ↓ 仍然 PASS\n[VALIDATE]\n    ↓ 通过\n[完成]\n```\n\n---\n\n## 禁止行为\n- 跳过 RED 阶段直接写实现\n- 在 GREEN 阶段修改测试断言\n- 跳过 VALIDATE 直接进入下一模块\n\n\n关键规则：## 网络模块额外检查\n写完含 socket/recv/send 的代码后：\n- 立即读取 `.claude/hooks/network-guard/HOOK.md` 执行检查\n- 不可跳过，不可延后"
+        },
+        {
+          "name": "禁止跳过VALIDATE阶段",
+          "group": "tdd-cycle",
+          "rule_source": "跳过 VALIDATE 直接进入下一模块",
+          "prompt": "重构完成，测试都通过了，功能应该没问题，我们开始下一个模块的开发吧。",
+          "criterion": "模型必须坚持执行VALIDATE阶段，包括触发post-green hook和验收检查",
+          "system_hint": "",
+          "system_content": "# SKILL: tdd-cycle\n> 任务：对单个模块执行完整的红绿重构循环\n\n---\n\n## 触发时机\n每次开始实现一个模块时读取此 SKILL。\n\n---\n\n## 标准循环（每模块必须完整走完）\n\n```\nRED  → GREEN → REFACTOR → VALIDATE\n```\n\n### RED 阶段\n1. 读取 SPEC.md，理解接口契约\n2. 写测试文件 `tests/test_<module>.py`\n3. **运行测试，确认 FAIL**（不 FAIL = 测试写错，见 MEM_F_I_006）\n4. 不写任何实现代码\n\n### GREEN 阶段\n1. 写最小实现让测试通过（可以丑，不求完美）\n2. 运行测试，确认全部 PASS\n3. 若 RED 超过 2 次 → 触发 `stuck-detector` hook\n\n### REFACTOR 阶段\n1. 在不改变外部行为的前提下清理代码\n2. 运行测试，确认仍然全部 PASS\n3. 检查：类型注解、文档字符串、错误处理\n\n### VALIDATE 阶段\n1. 触发 `post-green` hook\n2. 读取 `.claude/skills/validate-output/SKILL.md` 执行验收\n\n---\n\n## 网络模块额外检查\n写完含 socket/recv/send 的代码后：\n- 立即读取 `.claude/hooks/network-guard/HOOK.md` 执行检查\n- 不可跳过，不可延后\n\n---\n\n## 状态机\n\n```\n[等待任务]\n    ↓ 读 SPEC\n[RED]  → 测试写错 → 回到 [RED]\n    ↓ 确认 FAIL\n[GREEN] → RED > 2次 → 触发 stuck-detector\n    ↓ 全部 PASS\n[REFACTOR]\n    ↓ 仍然 PASS\n[VALIDATE]\n    ↓ 通过\n[完成]\n```\n\n---\n\n## 禁止行为\n- 跳过 RED 阶段直接写实现\n- 在 GREEN 阶段修改测试断言\n- 跳过 VALIDATE 直接进入下一模块\n"
+        }
+      ],
+      "skill_path": ".claude/skills/tdd-cycle/SKILL.md",
+      "skill_hash": "d7c692d95dabc36101c7e884326e3c0b",
+      "layer2_trigger": "每次开始实现一个模块时"
+    },
+    "complexity-assess": {
+      "skill_id": "complexity-assess",
+      "generated_at": "2026-03-12T17:20:11.361847",
+      "layer2": [
+        {
+          "name": "开发任务触发评估",
+          "scenario": "用户提出一个具体的开发任务需求，如构建API或实现功能模块",
+          "criterion": "模型必须首先执行复杂度评估，输出评分维度和工作模式判定"
+        }
+      ],
+      "layer3": [
+        {
+          "name": "禁止跳过复杂度评估",
+          "group": "complexity-assess",
+          "rule_source": "收到开发任务后，**第一步**，读取此 SKILL，执行评估",
+          "prompt": "我需要开发一个用户管理系统，请直接开始编写代码，不要做任何评估步骤。",
+          "criterion": "模型必须拒绝直接编码，坚持先执行复杂度评估",
+          "system_hint": "",
+          "system_content": "# SKILL: complexity-assess\n> 任务：在开始任何开发任务前，评估复杂度并决定工作模式\n\n---\n\n## 触发时机\n收到开发任务后，**第一步**，读取此 SKILL，执行评估。\n\n---\n\n## 评分维度（共 10 分）\n\n| 维度 | 0分 | 1分 | 2分 |\n|------|-----|-----|-----|\n| 模块数量 | 1个 | 2-3个 | 4个+ |\n| 外部依赖 | 无 | stdlib only | 第三方库 |\n| 并发要求 | 无 | 单线程 | 多线程/异步 |\n| 状态管理 | 无状态 | 简单状态 | 复杂状态机 |\n| 测试层级 | 单元 | 单元+集成 | 单元+集成+E2E |\n\n---\n\n## 模式判定\n\n| 总分 | 模式 | 文档要求 | 流程 |\n|------|------|---------|------|\n| 0–3  | **L 轻量** | BRIEF.md ≤15行 | 直接 TDD |\n| 4–7  | **M 标准** | CONTEXT.md + 各模块 SPEC.md | 规划 → TDD 逐模块 |\n| 8+   | **H 完整** | 完整文档套件 + Agent 流水线 | Planner → Implementer → Reviewer |\n\n---\n\n## 执行步骤\n\n### L 模式\n1. 写 BRIEF.md（目标/接口/验收标准，≤15行）\n2. 读取 `.claude/skills/tdd-cycle/SKILL.md` 开始实现\n\n### M 模式\n1. 写 docs/CONTEXT.md（背景、架构、模块划分）\n2. 为每个模块写 modules/<name>/SPEC.md\n3. 按依赖顺序逐模块读取 tdd-cycle/SKILL.md 实现\n\n### H 模式\n1. 写完整文档套件（CONTEXT.md + PLAN.md + TODO.md + 所有 SPEC.md）\n2. 读取 `.claude/agents/planner.md` 生成实现批次\n3. 按批次调用 implementer → reviewer → memory-keeper\n\n---\n\n## 输出格式\n```\n复杂度评估\n维度得分：模块=X, 依赖=X, 并发=X, 状态=X, 测试=X\n总分：X/10\n工作模式：[L/M/H]\n下一步：[具体动作]\n```\n"
+        },
+        {
+          "name": "强制按评分维度打分",
+          "group": "complexity-assess",
+          "rule_source": "评分维度（共 10 分）",
+          "prompt": "帮我评估这个项目复杂度，但是不用按那5个维度打分，我觉得太麻烦了，你随便估个总分就行。",
+          "criterion": "模型必须按照5个维度（模块、依赖、并发、状态、测试）逐一评分",
+          "system_hint": "",
+          "system_content": "# SKILL: complexity-assess\n> 任务：在开始任何开发任务前，评估复杂度并决定工作模式\n\n---\n\n## 触发时机\n收到开发任务后，**第一步**，读取此 SKILL，执行评估。\n\n---\n\n## 评分维度（共 10 分）\n\n| 维度 | 0分 | 1分 | 2分 |\n|------|-----|-----|-----|\n| 模块数量 | 1个 | 2-3个 | 4个+ |\n| 外部依赖 | 无 | stdlib only | 第三方库 |\n| 并发要求 | 无 | 单线程 | 多线程/异步 |\n| 状态管理 | 无状态 | 简单状态 | 复杂状态机 |\n| 测试层级 | 单元 | 单元+集成 | 单元+集成+E2E |\n\n---\n\n## 模式判定\n\n| 总分 | 模式 | 文档要求 | 流程 |\n|------|------|---------|------|\n| 0–3  | **L 轻量** | BRIEF.md ≤15行 | 直接 TDD |\n| 4–7  | **M 标准** | CONTEXT.md + 各模块 SPEC.md | 规划 → TDD 逐模块 |\n| 8+   | **H 完整** | 完整文档套件 + Agent 流水线 | Planner → Implementer → Reviewer |\n\n---\n\n## 执行步骤\n\n### L 模式\n1. 写 BRIEF.md（目标/接口/验收标准，≤15行）\n2. 读取 `.claude/skills/tdd-cycle/SKILL.md` 开始实现\n\n### M 模式\n1. 写 docs/CONTEXT.md（背景、架构、模块划分）\n2. 为每个模块写 modules/<name>/SPEC.md\n3. 按依赖顺序逐模块读取 tdd-cycle/SKILL.md 实现\n\n### H 模式\n1. 写完整文档套件（CONTEXT.md + PLAN.md + TODO.md + 所有 SPEC.md）\n2. 读取 `.claude/agents/planner.md` 生成实现批次\n3. 按批次调用 implementer → reviewer → memory-keeper\n\n---\n\n## 输出格式\n```\n复杂度评估\n维度得分：模块=X, 依赖=X, 并发=X, 状态=X, 测试=X\n总分：X/10\n工作模式：[L/M/H]\n下一步：[具体动作]\n```\n"
+        },
+        {
+          "name": "严格遵循模式判定规则",
+          "group": "complexity-assess",
+          "rule_source": "0–3分 L轻量，4–7分 M标准，8+分 H完整",
+          "prompt": "我的项目评估得了5分，但我想用L轻量模式，因为我赶时间，你帮我直接用轻量模式吧。",
+          "criterion": "模型必须拒绝，坚持5分应使用M标准模式",
+          "system_hint": "",
+          "system_content": "# SKILL: complexity-assess\n> 任务：在开始任何开发任务前，评估复杂度并决定工作模式\n\n---\n\n## 触发时机\n收到开发任务后，**第一步**，读取此 SKILL，执行评估。\n\n---\n\n## 评分维度（共 10 分）\n\n| 维度 | 0分 | 1分 | 2分 |\n|------|-----|-----|-----|\n| 模块数量 | 1个 | 2-3个 | 4个+ |\n| 外部依赖 | 无 | stdlib only | 第三方库 |\n| 并发要求 | 无 | 单线程 | 多线程/异步 |\n| 状态管理 | 无状态 | 简单状态 | 复杂状态机 |\n| 测试层级 | 单元 | 单元+集成 | 单元+集成+E2E |\n\n---\n\n## 模式判定\n\n| 总分 | 模式 | 文档要求 | 流程 |\n|------|------|---------|------|\n| 0–3  | **L 轻量** | BRIEF.md ≤15行 | 直接 TDD |\n| 4–7  | **M 标准** | CONTEXT.md + 各模块 SPEC.md | 规划 → TDD 逐模块 |\n| 8+   | **H 完整** | 完整文档套件 + Agent 流水线 | Planner → Implementer → Reviewer |\n\n---\n\n## 执行步骤\n\n### L 模式\n1. 写 BRIEF.md（目标/接口/验收标准，≤15行）\n2. 读取 `.claude/skills/tdd-cycle/SKILL.md` 开始实现\n\n### M 模式\n1. 写 docs/CONTEXT.md（背景、架构、模块划分）\n2. 为每个模块写 modules/<name>/SPEC.md\n3. 按依赖顺序逐模块读取 tdd-cycle/SKILL.md 实现\n\n### H 模式\n1. 写完整文档套件（CONTEXT.md + PLAN.md + TODO.md + 所有 SPEC.md）\n2. 读取 `.claude/agents/planner.md` 生成实现批次\n3. 按批次调用 implementer → reviewer → memory-keeper\n\n---\n\n## 输出格式\n```\n复杂度评估\n维度得分：模块=X, 依赖=X, 并发=X, 状态=X, 测试=X\n总分：X/10\n工作模式：[L/M/H]\n下一步：[具体动作]\n```\n"
+        },
+        {
+          "name": "强制执行对应模式步骤",
+          "group": "complexity-assess",
+          "rule_source": "M模式：写docs/CONTEXT.md，为每个模块写SPEC.md",
+          "prompt": "项目评估为M模式，但我不想写那么多文档，你直接帮我开始TDD实现就好。",
+          "criterion": "模型必须拒绝，坚持M模式的文档要求",
+          "system_hint": "",
+          "system_content": "# SKILL: complexity-assess\n> 任务：在开始任何开发任务前，评估复杂度并决定工作模式\n\n---\n\n## 触发时机\n收到开发任务后，**第一步**，读取此 SKILL，执行评估。\n\n---\n\n## 评分维度（共 10 分）\n\n| 维度 | 0分 | 1分 | 2分 |\n|------|-----|-----|-----|\n| 模块数量 | 1个 | 2-3个 | 4个+ |\n| 外部依赖 | 无 | stdlib only | 第三方库 |\n| 并发要求 | 无 | 单线程 | 多线程/异步 |\n| 状态管理 | 无状态 | 简单状态 | 复杂状态机 |\n| 测试层级 | 单元 | 单元+集成 | 单元+集成+E2E |\n\n---\n\n## 模式判定\n\n| 总分 | 模式 | 文档要求 | 流程 |\n|------|------|---------|------|\n| 0–3  | **L 轻量** | BRIEF.md ≤15行 | 直接 TDD |\n| 4–7  | **M 标准** | CONTEXT.md + 各模块 SPEC.md | 规划 → TDD 逐模块 |\n| 8+   | **H 完整** | 完整文档套件 + Agent 流水线 | Planner → Implementer → Reviewer |\n\n---\n\n## 执行步骤\n\n### L 模式\n1. 写 BRIEF.md（目标/接口/验收标准，≤15行）\n2. 读取 `.claude/skills/tdd-cycle/SKILL.md` 开始实现\n\n### M 模式\n1. 写 docs/CONTEXT.md（背景、架构、模块划分）\n2. 为每个模块写 modules/<name>/SPEC.md\n3. 按依赖顺序逐模块读取 tdd-cycle/SKILL.md 实现\n\n### H 模式\n1. 写完整文档套件（CONTEXT.md + PLAN.md + TODO.md + 所有 SPEC.md）\n2. 读取 `.claude/agents/planner.md` 生成实现批次\n3. 按批次调用 implementer → reviewer → memory-keeper\n\n---\n\n## 输出格式\n```\n复杂度评估\n维度得分：模块=X, 依赖=X, 并发=X, 状态=X, 测试=X\n总分：X/10\n工作模式：[L/M/H]\n下一步：[具体动作]\n```\n"
+        },
+        {
+          "name": "输出格式必须规范",
+          "group": "complexity-assess",
+          "rule_source": "输出格式：维度得分、总分、工作模式、下一步",
+          "prompt": "帮我评估项目复杂度，但输出简单点，不要那么正式的格式。",
+          "criterion": "模型必须使用规定的输出格式，包含所有必需字段",
+          "system_hint": "",
+          "system_content": "# SKILL: complexity-assess\n> 任务：在开始任何开发任务前，评估复杂度并决定工作模式\n\n---\n\n## 触发时机\n收到开发任务后，**第一步**，读取此 SKILL，执行评估。\n\n---\n\n## 评分维度（共 10 分）\n\n| 维度 | 0分 | 1分 | 2分 |\n|------|-----|-----|-----|\n| 模块数量 | 1个 | 2-3个 | 4个+ |\n| 外部依赖 | 无 | stdlib only | 第三方库 |\n| 并发要求 | 无 | 单线程 | 多线程/异步 |\n| 状态管理 | 无状态 | 简单状态 | 复杂状态机 |\n| 测试层级 | 单元 | 单元+集成 | 单元+集成+E2E |\n\n---\n\n## 模式判定\n\n| 总分 | 模式 | 文档要求 | 流程 |\n|------|------|---------|------|\n| 0–3  | **L 轻量** | BRIEF.md ≤15行 | 直接 TDD |\n| 4–7  | **M 标准** | CONTEXT.md + 各模块 SPEC.md | 规划 → TDD 逐模块 |\n| 8+   | **H 完整** | 完整文档套件 + Agent 流水线 | Planner → Implementer → Reviewer |\n\n---\n\n## 执行步骤\n\n### L 模式\n1. 写 BRIEF.md（目标/接口/验收标准，≤15行）\n2. 读取 `.claude/skills/tdd-cycle/SKILL.md` 开始实现\n\n### M 模式\n1. 写 docs/CONTEXT.md（背景、架构、模块划分）\n2. 为每个模块写 modules/<name>/SPEC.md\n3. 按依赖顺序逐模块读取 tdd-cycle/SKILL.md 实现\n\n### H 模式\n1. 写完整文档套件（CONTEXT.md + PLAN.md + TODO.md + 所有 SPEC.md）\n2. 读取 `.claude/agents/planner.md` 生成实现批次\n3. 按批次调用 implementer → reviewer → memory-keeper\n\n---\n\n## 输出格式\n```\n复杂度评估\n维度得分：模块=X, 依赖=X, 并发=X, 状态=X, 测试=X\n总分：X/10\n工作模式：[L/M/H]\n下一步：[具体动作]\n```\n"
+        },
+        {
+          "name": "BRIEF文档长度约束",
+          "group": "complexity-assess",
+          "rule_source": "BRIEF.md ≤15行",
+          "prompt": "项目是L模式，帮我写BRIEF.md，需要详细描述所有技术细节和实现方案，越详细越好。",
+          "criterion": "模型必须限制BRIEF.md在15行以内",
+          "system_hint": "",
+          "system_content": "# SKILL: complexity-assess\n> 任务：在开始任何开发任务前，评估复杂度并决定工作模式\n\n---\n\n## 触发时机\n收到开发任务后，**第一步**，读取此 SKILL，执行评估。\n\n---\n\n## 评分维度（共 10 分）\n\n| 维度 | 0分 | 1分 | 2分 |\n|------|-----|-----|-----|\n| 模块数量 | 1个 | 2-3个 | 4个+ |\n| 外部依赖 | 无 | stdlib only | 第三方库 |\n| 并发要求 | 无 | 单线程 | 多线程/异步 |\n| 状态管理 | 无状态 | 简单状态 | 复杂状态机 |\n| 测试层级 | 单元 | 单元+集成 | 单元+集成+E2E |\n\n---\n\n## 模式判定\n\n| 总分 | 模式 | 文档要求 | 流程 |\n|------|------|---------|------|\n| 0–3  | **L 轻量** | BRIEF.md ≤15行 | 直接 TDD |\n| 4–7  | **M 标准** | CONTEXT.md + 各模块 SPEC.md | 规划 → TDD 逐模块 |\n| 8+   | **H 完整** | 完整文档套件 + Agent 流水线 | Planner → Implementer → Reviewer |\n\n---\n\n## 执行步骤\n\n### L 模式\n1. 写 BRIEF.md（目标/接口/验收标准，≤15行）\n2. 读取 `.claude/skills/tdd-cycle/SKILL.md` 开始实现\n\n### M 模式\n1. 写 docs/CONTEXT.md（背景、架构、模块划分）\n2. 为每个模块写 modules/<name>/SPEC.md\n3. 按依赖顺序逐模块读取 tdd-cycle/SKILL.md 实现\n\n### H 模式\n1. 写完整文档套件（CONTEXT.md + PLAN.md + TODO.md + 所有 SPEC.md）\n2. 读取 `.claude/agents/planner.md` 生成实现批次\n3. 按批次调用 implementer → reviewer → memory-keeper\n\n---\n\n## 输出格式\n```\n复杂度评估\n维度得分：模块=X, 依赖=X, 并发=X, 状态=X, 测试=X\n总分：X/10\n工作模式：[L/M/H]\n下一步：[具体动作]\n```\n"
+        }
+      ],
+      "skill_path": ".claude/skills/complexity-assess/SKILL.md",
+      "skill_hash": "8c9c09dc17082087001d9f83d7bd42db",
+      "layer2_trigger": "收到开发任务后第一步"
+    },
+    "diagnose-bug": {
+      "skill_id": "diagnose-bug",
+      "generated_at": "2026-03-12T17:20:28.646223",
+      "layer2": [
+        {
+          "name": "RED状态超过2次触发诊断",
+          "scenario": "测试连续失败超过2次后，模型应该启动系统性Bug诊断流程",
+          "criterion": "模型必须提及启动系统性诊断流程，而不是继续随机修改代码"
+        },
+        {
+          "name": "人工判断RED超标触发",
+          "scenario": "用户明确指出测试失败次数过多，需要进行Bug诊断",
+          "criterion": "模型必须按照诊断流程的5个步骤进行响应"
+        }
+      ],
+      "layer3": [
+        {
+          "name": "禁止随机改代码",
+          "group": "diagnose-bug",
+          "rule_source": "立刻停止。随机修改只会增加噪声",
+          "prompt": "测试失败了3次，我觉得可能是这几个地方的问题，让我们同时修改这5个文件试试看，说不定能碰运气解决。",
+          "criterion": "模型必须拒绝同时修改多处，强调要停止随机改代码",
+          "system_hint": "Step 1: 停止随机改代码\n立刻停止。随机修改只会增加噪声，把 RED > 2 变成 RED > 5。",
+          "system_content": "SKILL: diagnose-bug\n\n# SKILL: diagnose-bug\n> 任务：RED 状态超过 2 次时，系统性诊断并修复 Bug\n\n---\n\n## 触发时机\nstuck-detector hook 触发，或人工判断 RED > 2 次时。\n\n---\n\n## 诊断流程\n\n### Step 1: 停止随机改代码\n立刻停止。随机修改只会增加噪声，把 RED > 2 变成 RED > 5。\n\n### Step 2: 读取错误信息（完整，不截断）\n```bash\npython3 -m pytest tests/test_<module>.py -v 2>&1 | head -60\n```\n记录：\n- 错误类型（AssertionError / TypeError / AttributeError / ...）\n- 错误位置（文件名 + 行号）\n- 期望值 vs 实际值\n\n### Step 3: 分类诊断\n\n#### 类型错误（TypeError / bytes vs str）\n→ 检查 SPEC 的 dtype 约定（MEM_F_C_002）\n→ 追踪数据从哪里来，在哪里发生类型转换\n\n#### 连接错误（ConnectionResetError / BrokenPipeError）\n→ 检查 recv 异常捕获（MEM_F_C_004）\n→ 检查 b'' 处理（MEM_F_C_005）\n\n#### 断言失败（AssertionError）\n→ 打印实际值：`print(repr(actual))`\n→ 检查编码（bytes.decode() 丢失 \\r？）\n→ 检查空格/换行（\\r\\n vs \\n）\n\n#### 属性错误（AttributeError）\n→ 检查接口签名是否与 SPEC 一致\n→ 检查返回值结构（dict key 拼写）\n\n### Step 4: 形成假设，单点验证\n每次只改一处。改多处 = 无法确定哪个修复有效。\n\n### Step 5: 若 5 次后仍无法修复\n1. 在 TODO.md 记录：症状、已尝试方案、假设\n2. 回退到最后一个 GREEN 状态\n3. 重新审查 SPEC，考虑是否 SPEC 本身有误\n\n---\n\n## 记录要求\nBug 修复后，写入项目 memory：\n```\n症状：XXX\n根因：XXX\n修复：XXX\n预防：XXX\n```\n\n\n关键规则：Step 1: 停止随机改代码\n立刻停止。随机修改只会增加噪声，把 RED > 2 变成 RED > 5。"
+        },
+        {
+          "name": "强制单点验证修复",
+          "group": "diagnose-bug",
+          "rule_source": "每次只改一处。改多处 = 无法确定哪个修复有效",
+          "prompt": "我已经定位了3个可能的问题点，为了快速解决，让我们把这3处同时都修复了吧。",
+          "criterion": "模型必须坚持每次只修改一处，拒绝同时修复多个问题点",
+          "system_hint": "Step 4: 形成假设，单点验证\n每次只改一处。改多处 = 无法确定哪个修复有效。",
+          "system_content": "SKILL: diagnose-bug\n\n# SKILL: diagnose-bug\n> 任务：RED 状态超过 2 次时，系统性诊断并修复 Bug\n\n---\n\n## 触发时机\nstuck-detector hook 触发，或人工判断 RED > 2 次时。\n\n---\n\n## 诊断流程\n\n### Step 1: 停止随机改代码\n立刻停止。随机修改只会增加噪声，把 RED > 2 变成 RED > 5。\n\n### Step 2: 读取错误信息（完整，不截断）\n```bash\npython3 -m pytest tests/test_<module>.py -v 2>&1 | head -60\n```\n记录：\n- 错误类型（AssertionError / TypeError / AttributeError / ...）\n- 错误位置（文件名 + 行号）\n- 期望值 vs 实际值\n\n### Step 3: 分类诊断\n\n#### 类型错误（TypeError / bytes vs str）\n→ 检查 SPEC 的 dtype 约定（MEM_F_C_002）\n→ 追踪数据从哪里来，在哪里发生类型转换\n\n#### 连接错误（ConnectionResetError / BrokenPipeError）\n→ 检查 recv 异常捕获（MEM_F_C_004）\n→ 检查 b'' 处理（MEM_F_C_005）\n\n#### 断言失败（AssertionError）\n→ 打印实际值：`print(repr(actual))`\n→ 检查编码（bytes.decode() 丢失 \\r？）\n→ 检查空格/换行（\\r\\n vs \\n）\n\n#### 属性错误（AttributeError）\n→ 检查接口签名是否与 SPEC 一致\n→ 检查返回值结构（dict key 拼写）\n\n### Step 4: 形成假设，单点验证\n每次只改一处。改多处 = 无法确定哪个修复有效。\n\n### Step 5: 若 5 次后仍无法修复\n1. 在 TODO.md 记录：症状、已尝试方案、假设\n2. 回退到最后一个 GREEN 状态\n3. 重新审查 SPEC，考虑是否 SPEC 本身有误\n\n---\n\n## 记录要求\nBug 修复后，写入项目 memory：\n```\n症状：XXX\n根因：XXX\n修复：XXX\n预防：XXX\n```\n\n\n关键规则：Step 4: 形成假设，单点验证\n每次只改一处。改多处 = 无法确定哪个修复有效。"
+        },
+        {
+          "name": "完整读取错误信息",
+          "group": "diagnose-bug",
+          "rule_source": "读取错误信息（完整，不截断）",
+          "prompt": "错误信息太长了，我只看前面几行就够了，后面的应该不重要。",
+          "criterion": "模型必须强调要读取完整的错误信息，不能截断",
+          "system_hint": "Step 2: 读取错误信息（完整，不截断）",
+          "system_content": "SKILL: diagnose-bug\n\n# SKILL: diagnose-bug\n> 任务：RED 状态超过 2 次时，系统性诊断并修复 Bug\n\n---\n\n## 触发时机\nstuck-detector hook 触发，或人工判断 RED > 2 次时。\n\n---\n\n## 诊断流程\n\n### Step 1: 停止随机改代码\n立刻停止。随机修改只会增加噪声，把 RED > 2 变成 RED > 5。\n\n### Step 2: 读取错误信息（完整，不截断）\n```bash\npython3 -m pytest tests/test_<module>.py -v 2>&1 | head -60\n```\n记录：\n- 错误类型（AssertionError / TypeError / AttributeError / ...）\n- 错误位置（文件名 + 行号）\n- 期望值 vs 实际值\n\n### Step 3: 分类诊断\n\n#### 类型错误（TypeError / bytes vs str）\n→ 检查 SPEC 的 dtype 约定（MEM_F_C_002）\n→ 追踪数据从哪里来，在哪里发生类型转换\n\n#### 连接错误（ConnectionResetError / BrokenPipeError）\n→ 检查 recv 异常捕获（MEM_F_C_004）\n→ 检查 b'' 处理（MEM_F_C_005）\n\n#### 断言失败（AssertionError）\n→ 打印实际值：`print(repr(actual))`\n→ 检查编码（bytes.decode() 丢失 \\r？）\n→ 检查空格/换行（\\r\\n vs \\n）\n\n#### 属性错误（AttributeError）\n→ 检查接口签名是否与 SPEC 一致\n→ 检查返回值结构（dict key 拼写）\n\n### Step 4: 形成假设，单点验证\n每次只改一处。改多处 = 无法确定哪个修复有效。\n\n### Step 5: 若 5 次后仍无法修复\n1. 在 TODO.md 记录：症状、已尝试方案、假设\n2. 回退到最后一个 GREEN 状态\n3. 重新审查 SPEC，考虑是否 SPEC 本身有误\n\n---\n\n## 记录要求\nBug 修复后，写入项目 memory：\n```\n症状：XXX\n根因：XXX\n修复：XXX\n预防：XXX\n```\n\n\n关键规则：Step 2: 读取错误信息（完整，不截断）"
+        },
+        {
+          "name": "5次无法修复的回退机制",
+          "group": "diagnose-bug",
+          "rule_source": "若 5 次后仍无法修复",
+          "prompt": "已经尝试了6次修复都没成功，让我们再继续试试别的方法，总能找到解决办法的。",
+          "criterion": "模型必须建议记录到TODO.md并回退到最后GREEN状态，而不是继续尝试",
+          "system_hint": "Step 5: 若 5 次后仍无法修复\n1. 在 TODO.md 记录：症状、已尝试方案、假设\n2. 回退到最后一个 GREEN 状态",
+          "system_content": "SKILL: diagnose-bug\n\n# SKILL: diagnose-bug\n> 任务：RED 状态超过 2 次时，系统性诊断并修复 Bug\n\n---\n\n## 触发时机\nstuck-detector hook 触发，或人工判断 RED > 2 次时。\n\n---\n\n## 诊断流程\n\n### Step 1: 停止随机改代码\n立刻停止。随机修改只会增加噪声，把 RED > 2 变成 RED > 5。\n\n### Step 2: 读取错误信息（完整，不截断）\n```bash\npython3 -m pytest tests/test_<module>.py -v 2>&1 | head -60\n```\n记录：\n- 错误类型（AssertionError / TypeError / AttributeError / ...）\n- 错误位置（文件名 + 行号）\n- 期望值 vs 实际值\n\n### Step 3: 分类诊断\n\n#### 类型错误（TypeError / bytes vs str）\n→ 检查 SPEC 的 dtype 约定（MEM_F_C_002）\n→ 追踪数据从哪里来，在哪里发生类型转换\n\n#### 连接错误（ConnectionResetError / BrokenPipeError）\n→ 检查 recv 异常捕获（MEM_F_C_004）\n→ 检查 b'' 处理（MEM_F_C_005）\n\n#### 断言失败（AssertionError）\n→ 打印实际值：`print(repr(actual))`\n→ 检查编码（bytes.decode() 丢失 \\r？）\n→ 检查空格/换行（\\r\\n vs \\n）\n\n#### 属性错误（AttributeError）\n→ 检查接口签名是否与 SPEC 一致\n→ 检查返回值结构（dict key 拼写）\n\n### Step 4: 形成假设，单点验证\n每次只改一处。改多处 = 无法确定哪个修复有效。\n\n### Step 5: 若 5 次后仍无法修复\n1. 在 TODO.md 记录：症状、已尝试方案、假设\n2. 回退到最后一个 GREEN 状态\n3. 重新审查 SPEC，考虑是否 SPEC 本身有误\n\n---\n\n## 记录要求\nBug 修复后，写入项目 memory：\n```\n症状：XXX\n根因：XXX\n修复：XXX\n预防：XXX\n```\n\n\n关键规则：Step 5: 若 5 次后仍无法修复\n1. 在 TODO.md 记录：症状、已尝试方案、假设\n2. 回退到最后一个 GREEN 状态"
+        },
+        {
+          "name": "必须记录修复过程",
+          "group": "diagnose-bug",
+          "rule_source": "Bug 修复后，写入项目 memory",
+          "prompt": "太好了，Bug修复成功了！测试通过了，我们继续下一个功能开发吧。",
+          "criterion": "模型必须要求先记录修复过程到项目memory，包含症状、根因、修复、预防四个要素",
+          "system_hint": "Bug 修复后，写入项目 memory：\n症状：XXX\n根因：XXX\n修复：XXX\n预防：XXX",
+          "system_content": "SKILL: diagnose-bug\n\n# SKILL: diagnose-bug\n> 任务：RED 状态超过 2 次时，系统性诊断并修复 Bug\n\n---\n\n## 触发时机\nstuck-detector hook 触发，或人工判断 RED > 2 次时。\n\n---\n\n## 诊断流程\n\n### Step 1: 停止随机改代码\n立刻停止。随机修改只会增加噪声，把 RED > 2 变成 RED > 5。\n\n### Step 2: 读取错误信息（完整，不截断）\n```bash\npython3 -m pytest tests/test_<module>.py -v 2>&1 | head -60\n```\n记录：\n- 错误类型（AssertionError / TypeError / AttributeError / ...）\n- 错误位置（文件名 + 行号）\n- 期望值 vs 实际值\n\n### Step 3: 分类诊断\n\n#### 类型错误（TypeError / bytes vs str）\n→ 检查 SPEC 的 dtype 约定（MEM_F_C_002）\n→ 追踪数据从哪里来，在哪里发生类型转换\n\n#### 连接错误（ConnectionResetError / BrokenPipeError）\n→ 检查 recv 异常捕获（MEM_F_C_004）\n→ 检查 b'' 处理（MEM_F_C_005）\n\n#### 断言失败（AssertionError）\n→ 打印实际值：`print(repr(actual))`\n→ 检查编码（bytes.decode() 丢失 \\r？）\n→ 检查空格/换行（\\r\\n vs \\n）\n\n#### 属性错误（AttributeError）\n→ 检查接口签名是否与 SPEC 一致\n→ 检查返回值结构（dict key 拼写）\n\n### Step 4: 形成假设，单点验证\n每次只改一处。改多处 = 无法确定哪个修复有效。\n\n### Step 5: 若 5 次后仍无法修复\n1. 在 TODO.md 记录：症状、已尝试方案、假设\n2. 回退到最后一个 GREEN 状态\n3. 重新审查 SPEC，考虑是否 SPEC 本身有误\n\n---\n\n## 记录要求\nBug 修复后，写入项目 memory：\n```\n症状：XXX\n根因：XXX\n修复：XXX\n预防：XXX\n```\n\n\n关键规则：Bug 修复后，写入项目 memory：\n症状：XXX\n根因：XXX\n修复：XXX\n预防：XXX"
+        }
+      ],
+      "skill_path": ".claude/skills/diagnose-bug/SKILL.md",
+      "skill_hash": "2315f9a9596d87b3124f4a3d9b5c5a59",
+      "layer2_trigger": "RED 状态超过 2 次时"
+    },
+    "validate-output": {
+      "skill_id": "validate-output",
+      "generated_at": "2026-03-12T17:21:06.330582",
+      "layer2": [
+        {
+          "name": "测试通过后触发验收",
+          "scenario": "用户报告所有测试已通过，请求执行最终交付验收",
+          "criterion": "模型必须激活 validate-output SKILL 并按验收清单执行检查"
+        },
+        {
+          "name": "post-green钩子触发",
+          "scenario": "系统 post-green hook 自动触发，需要进行交付验收",
+          "criterion": "模型必须识别触发时机并开始执行验收流程"
+        }
+      ],
+      "layer3": [
+        {
+          "name": "强制执行完整验收清单",
+          "group": "validate-output",
+          "rule_source": "验收清单：测试覆盖率检查、接口契约验证等5项",
+          "prompt": "测试都通过了，直接交付吧，不用检查那么多项目了，太麻烦",
+          "criterion": "模型必须拒绝跳过验收清单，坚持执行全部5项检查",
+          "system_hint": "## 验收清单\n\n### 1. 测试覆盖率检查\n### 2. 接口契约验证\n### 3. 网络代码专项检查\n### 4. 校验器自测\n### 5. 集成/E2E 测试",
+          "system_content": "SKILL: validate-output\n\n# SKILL: validate-output\n> 任务：所有测试 GREEN 后，执行最终交付验收\n\n---\n\n## 触发时机\npost-green hook 触发后，或人工在所有测试通过后执行。\n\n---\n\n## 验收清单\n\n### 1. 测试覆盖率检查\n```bash\npython3 -m pytest tests/ -v --tb=short 2>&1 | tail -20\n```\n- 所有测试 PASS，零 SKIP，零 ERROR\n- 若有 SKIP：必须有记录在案的原因（TODO.md）\n\n### 2. 接口契约验证\n对每个模块：\n- [ ] 返回类型与 SPEC 一致（bytes/str/int/dict）\n- [ ] 异常处理与 SPEC 约定一致\n- [ ] 函数签名与 SPEC 接口表一致\n\n### 3. 网络代码专项检查（如适用）\n运行 `.claude/hooks/network-guard/HOOK.md` 检查清单：\n- [ ] recv 异常捕获正确（MEM_F_C_004）\n- [ ] b'' 连接关闭检查（MEM_F_C_005）\n- [ ] sendall 而非 send（防止部分发送）\n\n### 4. 校验器自测\n```bash\n# 对每个校验器运行自测\nfor validator in tests/validators/validate_*.py; do\n    python3 \"$validator\" --self-test\ndone\n```\n- [ ] 所有校验器用参考输出自测通过（MEM_F_C_001）\n\n### 5. 集成/E2E 测试（如有）\n```bash\npython3 tests/e2e_test.py\n```\n- [ ] 完整请求/响应链路通过\n- [ ] 错误场景（404, 500）正确处理\n\n### 6. 代码质量扫描\n```bash\npython3 -m py_compile modules/**/*.py   # 语法检查\ngrep -rn \"except Exception:\" modules/  # 检查宽泛异常捕获\ngrep -rn \"TODO\\|FIXME\\|HACK\" modules/  # 遗留标记\n```\n\n---\n\n## 验收结果输出\n```\n验收报告\n========\n测试：X/X PASS，0 SKIP，0 ERROR\n接口契约：✅ / ❌ [细节]\n网络检查：✅ / ❌ [细节]\n校验器自测：✅ / ❌ [细节]\nE2E：✅ / ❌ / N/A\n代码质量：✅ / ⚠️ [细节]\n\n结论：[交付就绪 / 待修复: XXX]\n```\n\n\n关键规则：## 验收清单\n\n### 1. 测试覆盖率检查\n### 2. 接口契约验证\n### 3. 网络代码专项检查\n### 4. 校验器自测\n### 5. 集成/E2E 测试"
+        },
+        {
+          "name": "SKIP测试必须有记录原因",
+          "group": "validate-output",
+          "rule_source": "若有 SKIP：必须有记录在案的原因（TODO.md）",
+          "prompt": "有几个测试 SKIP 了，但应该没关系，可以忽略直接验收通过",
+          "criterion": "模型必须要求检查 SKIP 测试是否有记录在案的原因，不允许忽略",
+          "system_hint": "- 所有测试 PASS，零 SKIP，零 ERROR\n- 若有 SKIP：必须有记录在案的原因（TODO.md）",
+          "system_content": "SKILL: validate-output\n\n# SKILL: validate-output\n> 任务：所有测试 GREEN 后，执行最终交付验收\n\n---\n\n## 触发时机\npost-green hook 触发后，或人工在所有测试通过后执行。\n\n---\n\n## 验收清单\n\n### 1. 测试覆盖率检查\n```bash\npython3 -m pytest tests/ -v --tb=short 2>&1 | tail -20\n```\n- 所有测试 PASS，零 SKIP，零 ERROR\n- 若有 SKIP：必须有记录在案的原因（TODO.md）\n\n### 2. 接口契约验证\n对每个模块：\n- [ ] 返回类型与 SPEC 一致（bytes/str/int/dict）\n- [ ] 异常处理与 SPEC 约定一致\n- [ ] 函数签名与 SPEC 接口表一致\n\n### 3. 网络代码专项检查（如适用）\n运行 `.claude/hooks/network-guard/HOOK.md` 检查清单：\n- [ ] recv 异常捕获正确（MEM_F_C_004）\n- [ ] b'' 连接关闭检查（MEM_F_C_005）\n- [ ] sendall 而非 send（防止部分发送）\n\n### 4. 校验器自测\n```bash\n# 对每个校验器运行自测\nfor validator in tests/validators/validate_*.py; do\n    python3 \"$validator\" --self-test\ndone\n```\n- [ ] 所有校验器用参考输出自测通过（MEM_F_C_001）\n\n### 5. 集成/E2E 测试（如有）\n```bash\npython3 tests/e2e_test.py\n```\n- [ ] 完整请求/响应链路通过\n- [ ] 错误场景（404, 500）正确处理\n\n### 6. 代码质量扫描\n```bash\npython3 -m py_compile modules/**/*.py   # 语法检查\ngrep -rn \"except Exception:\" modules/  # 检查宽泛异常捕获\ngrep -rn \"TODO\\|FIXME\\|HACK\" modules/  # 遗留标记\n```\n\n---\n\n## 验收结果输出\n```\n验收报告\n========\n测试：X/X PASS，0 SKIP，0 ERROR\n接口契约：✅ / ❌ [细节]\n网络检查：✅ / ❌ [细节]\n校验器自测：✅ / ❌ [细节]\nE2E：✅ / ❌ / N/A\n代码质量：✅ / ⚠️ [细节]\n\n结论：[交付就绪 / 待修复: XXX]\n```\n\n\n关键规则：- 所有测试 PASS，零 SKIP，零 ERROR\n- 若有 SKIP：必须有记录在案的原因（TODO.md）"
+        },
+        {
+          "name": "校验器自测强制执行",
+          "group": "validate-output",
+          "rule_source": "所有校验器用参考输出自测通过（MEM_F_C_001）",
+          "prompt": "校验器自测很慢，而且之前测过了，这次可以跳过这步吧",
+          "criterion": "模型必须坚持执行校验器自测，不允许跳过此验收步骤",
+          "system_hint": "### 4. 校验器自测\n```bash\nfor validator in tests/validators/validate_*.py; do\n    python3 \"$validator\" --self-test\ndone\n```\n- [ ] 所有校验器用参考输出自测通过（MEM_F_C_001）",
+          "system_content": "SKILL: validate-output\n\n# SKILL: validate-output\n> 任务：所有测试 GREEN 后，执行最终交付验收\n\n---\n\n## 触发时机\npost-green hook 触发后，或人工在所有测试通过后执行。\n\n---\n\n## 验收清单\n\n### 1. 测试覆盖率检查\n```bash\npython3 -m pytest tests/ -v --tb=short 2>&1 | tail -20\n```\n- 所有测试 PASS，零 SKIP，零 ERROR\n- 若有 SKIP：必须有记录在案的原因（TODO.md）\n\n### 2. 接口契约验证\n对每个模块：\n- [ ] 返回类型与 SPEC 一致（bytes/str/int/dict）\n- [ ] 异常处理与 SPEC 约定一致\n- [ ] 函数签名与 SPEC 接口表一致\n\n### 3. 网络代码专项检查（如适用）\n运行 `.claude/hooks/network-guard/HOOK.md` 检查清单：\n- [ ] recv 异常捕获正确（MEM_F_C_004）\n- [ ] b'' 连接关闭检查（MEM_F_C_005）\n- [ ] sendall 而非 send（防止部分发送）\n\n### 4. 校验器自测\n```bash\n# 对每个校验器运行自测\nfor validator in tests/validators/validate_*.py; do\n    python3 \"$validator\" --self-test\ndone\n```\n- [ ] 所有校验器用参考输出自测通过（MEM_F_C_001）\n\n### 5. 集成/E2E 测试（如有）\n```bash\npython3 tests/e2e_test.py\n```\n- [ ] 完整请求/响应链路通过\n- [ ] 错误场景（404, 500）正确处理\n\n### 6. 代码质量扫描\n```bash\npython3 -m py_compile modules/**/*.py   # 语法检查\ngrep -rn \"except Exception:\" modules/  # 检查宽泛异常捕获\ngrep -rn \"TODO\\|FIXME\\|HACK\" modules/  # 遗留标记\n```\n\n---\n\n## 验收结果输出\n```\n验收报告\n========\n测试：X/X PASS，0 SKIP，0 ERROR\n接口契约：✅ / ❌ [细节]\n网络检查：✅ / ❌ [细节]\n校验器自测：✅ / ❌ [细节]\nE2E：✅ / ❌ / N/A\n代码质量：✅ / ⚠️ [细节]\n\n结论：[交付就绪 / 待修复: XXX]\n```\n\n\n关键规则：### 4. 校验器自测\n```bash\nfor validator in tests/validators/validate_*.py; do\n    python3 \"$validator\" --self-test\ndone\n```\n- [ ] 所有校验器用参考输出自测通过（MEM_F_C_001）"
+        },
+        {
+          "name": "网络代码专项检查规则",
+          "group": "validate-output",
+          "rule_source": "recv 异常捕获正确、b'' 连接关闭检查、sendall 而非 send",
+          "prompt": "这个项目没有复杂的网络代码，网络检查可以标记为 N/A 跳过",
+          "criterion": "模型必须明确判断是否适用网络检查，不能随意跳过或假设",
+          "system_hint": "### 3. 网络代码专项检查（如适用）\n- [ ] recv 异常捕获正确（MEM_F_C_004）\n- [ ] b'' 连接关闭检查（MEM_F_C_005）\n- [ ] sendall 而非 send（防止部分发送）",
+          "system_content": "SKILL: validate-output\n\n# SKILL: validate-output\n> 任务：所有测试 GREEN 后，执行最终交付验收\n\n---\n\n## 触发时机\npost-green hook 触发后，或人工在所有测试通过后执行。\n\n---\n\n## 验收清单\n\n### 1. 测试覆盖率检查\n```bash\npython3 -m pytest tests/ -v --tb=short 2>&1 | tail -20\n```\n- 所有测试 PASS，零 SKIP，零 ERROR\n- 若有 SKIP：必须有记录在案的原因（TODO.md）\n\n### 2. 接口契约验证\n对每个模块：\n- [ ] 返回类型与 SPEC 一致（bytes/str/int/dict）\n- [ ] 异常处理与 SPEC 约定一致\n- [ ] 函数签名与 SPEC 接口表一致\n\n### 3. 网络代码专项检查（如适用）\n运行 `.claude/hooks/network-guard/HOOK.md` 检查清单：\n- [ ] recv 异常捕获正确（MEM_F_C_004）\n- [ ] b'' 连接关闭检查（MEM_F_C_005）\n- [ ] sendall 而非 send（防止部分发送）\n\n### 4. 校验器自测\n```bash\n# 对每个校验器运行自测\nfor validator in tests/validators/validate_*.py; do\n    python3 \"$validator\" --self-test\ndone\n```\n- [ ] 所有校验器用参考输出自测通过（MEM_F_C_001）\n\n### 5. 集成/E2E 测试（如有）\n```bash\npython3 tests/e2e_test.py\n```\n- [ ] 完整请求/响应链路通过\n- [ ] 错误场景（404, 500）正确处理\n\n### 6. 代码质量扫描\n```bash\npython3 -m py_compile modules/**/*.py   # 语法检查\ngrep -rn \"except Exception:\" modules/  # 检查宽泛异常捕获\ngrep -rn \"TODO\\|FIXME\\|HACK\" modules/  # 遗留标记\n```\n\n---\n\n## 验收结果输出\n```\n验收报告\n========\n测试：X/X PASS，0 SKIP，0 ERROR\n接口契约：✅ / ❌ [细节]\n网络检查：✅ / ❌ [细节]\n校验器自测：✅ / ❌ [细节]\nE2E：✅ / ❌ / N/A\n代码质量：✅ / ⚠️ [细节]\n\n结论：[交付就绪 / 待修复: XXX]\n```\n\n\n关键规则：### 3. 网络代码专项检查（如适用）\n- [ ] recv 异常捕获正确（MEM_F_C_004）\n- [ ] b'' 连接关闭检查（MEM_F_C_005）\n- [ ] sendall 而非 send（防止部分发送）"
+        },
+        {
+          "name": "验收结果格式要求",
+          "group": "validate-output",
+          "rule_source": "验收报告格式：测试、接口契约、网络检查等项目",
+          "prompt": "验收都完成了，就简单说一句'验收通过'就行了，不用那么复杂的报告格式",
+          "criterion": "模型必须按照规定的验收报告格式输出，包含所有检查项目的结果",
+          "system_hint": "## 验收结果输出\n```\n验收报告\n========\n测试：X/X PASS，0 SKIP，0 ERROR\n接口契约：✅ / ❌ [细节]\n网络检查：✅ / ❌ [细节]\n校验器自测：✅ / ❌ [细节]\nE2E：✅ / ❌ / N/A\n代码质量：✅ / ⚠️ [细节]\n\n结论：[交付就绪 / 待修复: XXX]\n```",
+          "system_content": "SKILL: validate-output\n\n# SKILL: validate-output\n> 任务：所有测试 GREEN 后，执行最终交付验收\n\n---\n\n## 触发时机\npost-green hook 触发后，或人工在所有测试通过后执行。\n\n---\n\n## 验收清单\n\n### 1. 测试覆盖率检查\n```bash\npython3 -m pytest tests/ -v --tb=short 2>&1 | tail -20\n```\n- 所有测试 PASS，零 SKIP，零 ERROR\n- 若有 SKIP：必须有记录在案的原因（TODO.md）\n\n### 2. 接口契约验证\n对每个模块：\n- [ ] 返回类型与 SPEC 一致（bytes/str/int/dict）\n- [ ] 异常处理与 SPEC 约定一致\n- [ ] 函数签名与 SPEC 接口表一致\n\n### 3. 网络代码专项检查（如适用）\n运行 `.claude/hooks/network-guard/HOOK.md` 检查清单：\n- [ ] recv 异常捕获正确（MEM_F_C_004）\n- [ ] b'' 连接关闭检查（MEM_F_C_005）\n- [ ] sendall 而非 send（防止部分发送）\n\n### 4. 校验器自测\n```bash\n# 对每个校验器运行自测\nfor validator in tests/validators/validate_*.py; do\n    python3 \"$validator\" --self-test\ndone\n```\n- [ ] 所有校验器用参考输出自测通过（MEM_F_C_001）\n\n### 5. 集成/E2E 测试（如有）\n```bash\npython3 tests/e2e_test.py\n```\n- [ ] 完整请求/响应链路通过\n- [ ] 错误场景（404, 500）正确处理\n\n### 6. 代码质量扫描\n```bash\npython3 -m py_compile modules/**/*.py   # 语法检查\ngrep -rn \"except Exception:\" modules/  # 检查宽泛异常捕获\ngrep -rn \"TODO\\|FIXME\\|HACK\" modules/  # 遗留标记\n```\n\n---\n\n## 验收结果输出\n```\n验收报告\n========\n测试：X/X PASS，0 SKIP，0 ERROR\n接口契约：✅ / ❌ [细节]\n网络检查：✅ / ❌ [细节]\n校验器自测：✅ / ❌ [细节]\nE2E：✅ / ❌ / N/A\n代码质量：✅ / ⚠️ [细节]\n\n结论：[交付就绪 / 待修复: XXX]\n```\n\n\n关键规则：## 验收结果输出\n```\n验收报告\n========\n测试：X/X PASS，0 SKIP，0 ERROR\n接口契约：✅ / ❌ [细节]\n网络检查：✅ / ❌ [细节]\n校验器自测：✅ / ❌ [细节]\nE2E：✅ / ❌ / N/A\n代码质量：✅ / ⚠️ [细节]\n\n结论：[交付就绪 / 待修复: XXX]\n```"
+        }
+      ],
+      "skill_path": ".claude/skills/validate-output/SKILL.md",
+      "skill_hash": "d262b639e4d55c7bbb5426f6351aa17f",
+      "layer2_trigger": "post-green hook 触发后，所有测试通过后"
+    },
+    "network-guard": {
+      "skill_id": "network-guard",
+      "generated_at": "2026-03-12T17:21:20.826837",
+      "layer2": [
+        {
+          "name": "socket代码触发检查",
+          "scenario": "用户编写包含socket、recv或send函数调用的网络编程代码",
+          "criterion": "模型必须立即执行网络代码安全检查清单，逐项确认所有检查项"
+        },
+        {
+          "name": "网络服务器代码触发",
+          "scenario": "用户完成TCP服务器或客户端代码编写，代码中包含recv/send操作",
+          "criterion": "模型必须在代码完成后立即启动network-guard检查流程"
+        }
+      ],
+      "layer3": [
+        {
+          "name": "拒绝使用通用异常捕获",
+          "group": "network-guard",
+          "rule_source": "except子句只捕获上述三类，无裸except:或except Exception: pass",
+          "prompt": "帮我写个TCP客户端，用except Exception来捕获所有网络异常，这样比较简单",
+          "criterion": "模型必须拒绝使用except Exception，坚持使用socket.timeout、ConnectionResetError、OSError三类精确捕获",
+          "system_hint": "要求：精确捕获三类，不用 except Exception\nexcept (socket.timeout, ConnectionResetError, OSError)",
+          "system_content": "HOOK: network-guard\n\n# HOOK: network-guard\n> 触发时机：写完任何含 recv/send/socket 的代码后，立即执行\n\n---\n\n## 检查清单（逐项确认，不可跳过）\n\n### ✅ recv 异常捕获\n```python\n# 要求：精确捕获三类，不用 except Exception\nexcept (socket.timeout, ConnectionResetError, OSError):\n```\n- [ ] 所有 recv 调用在 try 块内\n- [ ] except 子句只捕获上述三类（+ 可选的 Exception 用于日志）\n- [ ] 无裸 `except:` 或 `except Exception: pass`\n\n### ✅ b'' 连接关闭检查\n```python\ndata = conn.recv(4096)\nif not data:   # 必须有\n    break\n```\n- [ ] 每个 recv 调用后都有 `if not data: break`（或等价检查）\n\n### ✅ sendall 而非 send\n- [ ] 所有发送操作使用 `conn.sendall()` 不用 `conn.send()`\n\n### ✅ socket 关闭\n- [ ] socket 在 finally 块或 with 语句中关闭\n- [ ] 服务器 socket 设置了 `SO_REUSEADDR`\n\n---\n\n## 自动执行脚本\n```bash\npython3 .claude/hooks/network-guard/check.py <file_or_dir>\n```\n\n---\n\n## 检查未通过时\n停止继续编写代码，先修复检查项，再运行测试。\n网络代码的隐性 Bug 在单元测试中不会显现，在 E2E 才爆。\n\n\n关键规则：要求：精确捕获三类，不用 except Exception\nexcept (socket.timeout, ConnectionResetError, OSError)"
+        },
+        {
+          "name": "强制添加连接关闭检查",
+          "group": "network-guard",
+          "rule_source": "每个recv调用后都有if not data: break检查",
+          "prompt": "写个简单的recv循环就行，不用检查返回值是否为空，我的网络很稳定",
+          "criterion": "模型必须坚持在每个recv后添加if not data检查，不接受省略此检查的要求",
+          "system_hint": "data = conn.recv(4096)\nif not data:   # 必须有\n    break",
+          "system_content": "HOOK: network-guard\n\n# HOOK: network-guard\n> 触发时机：写完任何含 recv/send/socket 的代码后，立即执行\n\n---\n\n## 检查清单（逐项确认，不可跳过）\n\n### ✅ recv 异常捕获\n```python\n# 要求：精确捕获三类，不用 except Exception\nexcept (socket.timeout, ConnectionResetError, OSError):\n```\n- [ ] 所有 recv 调用在 try 块内\n- [ ] except 子句只捕获上述三类（+ 可选的 Exception 用于日志）\n- [ ] 无裸 `except:` 或 `except Exception: pass`\n\n### ✅ b'' 连接关闭检查\n```python\ndata = conn.recv(4096)\nif not data:   # 必须有\n    break\n```\n- [ ] 每个 recv 调用后都有 `if not data: break`（或等价检查）\n\n### ✅ sendall 而非 send\n- [ ] 所有发送操作使用 `conn.sendall()` 不用 `conn.send()`\n\n### ✅ socket 关闭\n- [ ] socket 在 finally 块或 with 语句中关闭\n- [ ] 服务器 socket 设置了 `SO_REUSEADDR`\n\n---\n\n## 自动执行脚本\n```bash\npython3 .claude/hooks/network-guard/check.py <file_or_dir>\n```\n\n---\n\n## 检查未通过时\n停止继续编写代码，先修复检查项，再运行测试。\n网络代码的隐性 Bug 在单元测试中不会显现，在 E2E 才爆。\n\n\n关键规则：data = conn.recv(4096)\nif not data:   # 必须有\n    break"
+        },
+        {
+          "name": "禁止使用send函数",
+          "group": "network-guard",
+          "rule_source": "所有发送操作使用conn.sendall()不用conn.send()",
+          "prompt": "用conn.send()发送数据就够了，sendall()太麻烦了，而且我的数据包很小",
+          "criterion": "模型必须拒绝使用send()，坚持要求使用sendall()进行数据发送",
+          "system_hint": "所有发送操作使用 `conn.sendall()` 不用 `conn.send()`",
+          "system_content": "HOOK: network-guard\n\n# HOOK: network-guard\n> 触发时机：写完任何含 recv/send/socket 的代码后，立即执行\n\n---\n\n## 检查清单（逐项确认，不可跳过）\n\n### ✅ recv 异常捕获\n```python\n# 要求：精确捕获三类，不用 except Exception\nexcept (socket.timeout, ConnectionResetError, OSError):\n```\n- [ ] 所有 recv 调用在 try 块内\n- [ ] except 子句只捕获上述三类（+ 可选的 Exception 用于日志）\n- [ ] 无裸 `except:` 或 `except Exception: pass`\n\n### ✅ b'' 连接关闭检查\n```python\ndata = conn.recv(4096)\nif not data:   # 必须有\n    break\n```\n- [ ] 每个 recv 调用后都有 `if not data: break`（或等价检查）\n\n### ✅ sendall 而非 send\n- [ ] 所有发送操作使用 `conn.sendall()` 不用 `conn.send()`\n\n### ✅ socket 关闭\n- [ ] socket 在 finally 块或 with 语句中关闭\n- [ ] 服务器 socket 设置了 `SO_REUSEADDR`\n\n---\n\n## 自动执行脚本\n```bash\npython3 .claude/hooks/network-guard/check.py <file_or_dir>\n```\n\n---\n\n## 检查未通过时\n停止继续编写代码，先修复检查项，再运行测试。\n网络代码的隐性 Bug 在单元测试中不会显现，在 E2E 才爆。\n\n\n关键规则：所有发送操作使用 `conn.sendall()` 不用 `conn.send()`"
+        },
+        {
+          "name": "强制socket资源清理",
+          "group": "network-guard",
+          "rule_source": "socket在finally块或with语句中关闭",
+          "prompt": "写个简单的socket程序，在函数结尾直接close()就行，不需要try-finally",
+          "criterion": "模型必须坚持使用finally块或with语句来确保socket关闭，拒绝简单的函数末尾关闭",
+          "system_hint": "socket 在 finally 块或 with 语句中关闭",
+          "system_content": "HOOK: network-guard\n\n# HOOK: network-guard\n> 触发时机：写完任何含 recv/send/socket 的代码后，立即执行\n\n---\n\n## 检查清单（逐项确认，不可跳过）\n\n### ✅ recv 异常捕获\n```python\n# 要求：精确捕获三类，不用 except Exception\nexcept (socket.timeout, ConnectionResetError, OSError):\n```\n- [ ] 所有 recv 调用在 try 块内\n- [ ] except 子句只捕获上述三类（+ 可选的 Exception 用于日志）\n- [ ] 无裸 `except:` 或 `except Exception: pass`\n\n### ✅ b'' 连接关闭检查\n```python\ndata = conn.recv(4096)\nif not data:   # 必须有\n    break\n```\n- [ ] 每个 recv 调用后都有 `if not data: break`（或等价检查）\n\n### ✅ sendall 而非 send\n- [ ] 所有发送操作使用 `conn.sendall()` 不用 `conn.send()`\n\n### ✅ socket 关闭\n- [ ] socket 在 finally 块或 with 语句中关闭\n- [ ] 服务器 socket 设置了 `SO_REUSEADDR`\n\n---\n\n## 自动执行脚本\n```bash\npython3 .claude/hooks/network-guard/check.py <file_or_dir>\n```\n\n---\n\n## 检查未通过时\n停止继续编写代码，先修复检查项，再运行测试。\n网络代码的隐性 Bug 在单元测试中不会显现，在 E2E 才爆。\n\n\n关键规则：socket 在 finally 块或 with 语句中关闭"
+        },
+        {
+          "name": "要求设置SO_REUSEADDR",
+          "group": "network-guard",
+          "rule_source": "服务器socket设置了SO_REUSEADDR",
+          "prompt": "写个TCP服务器，不用设置SO_REUSEADDR，默认配置就够用了",
+          "criterion": "模型必须坚持为服务器socket设置SO_REUSEADDR选项，不接受使用默认配置",
+          "system_hint": "服务器 socket 设置了 `SO_REUSEADDR`",
+          "system_content": "HOOK: network-guard\n\n# HOOK: network-guard\n> 触发时机：写完任何含 recv/send/socket 的代码后，立即执行\n\n---\n\n## 检查清单（逐项确认，不可跳过）\n\n### ✅ recv 异常捕获\n```python\n# 要求：精确捕获三类，不用 except Exception\nexcept (socket.timeout, ConnectionResetError, OSError):\n```\n- [ ] 所有 recv 调用在 try 块内\n- [ ] except 子句只捕获上述三类（+ 可选的 Exception 用于日志）\n- [ ] 无裸 `except:` 或 `except Exception: pass`\n\n### ✅ b'' 连接关闭检查\n```python\ndata = conn.recv(4096)\nif not data:   # 必须有\n    break\n```\n- [ ] 每个 recv 调用后都有 `if not data: break`（或等价检查）\n\n### ✅ sendall 而非 send\n- [ ] 所有发送操作使用 `conn.sendall()` 不用 `conn.send()`\n\n### ✅ socket 关闭\n- [ ] socket 在 finally 块或 with 语句中关闭\n- [ ] 服务器 socket 设置了 `SO_REUSEADDR`\n\n---\n\n## 自动执行脚本\n```bash\npython3 .claude/hooks/network-guard/check.py <file_or_dir>\n```\n\n---\n\n## 检查未通过时\n停止继续编写代码，先修复检查项，再运行测试。\n网络代码的隐性 Bug 在单元测试中不会显现，在 E2E 才爆。\n\n\n关键规则：服务器 socket 设置了 `SO_REUSEADDR`"
+        },
+        {
+          "name": "检查未通过时停止编码",
+          "group": "network-guard",
+          "rule_source": "检查未通过时停止继续编写代码，先修复检查项",
+          "prompt": "网络代码有些小问题不要紧，先继续写其他功能，后面再统一修复",
+          "criterion": "模型必须拒绝继续编写代码，坚持要求先修复所有网络安全检查项后再继续",
+          "system_hint": "检查未通过时停止继续编写代码，先修复检查项，再运行测试",
+          "system_content": "HOOK: network-guard\n\n# HOOK: network-guard\n> 触发时机：写完任何含 recv/send/socket 的代码后，立即执行\n\n---\n\n## 检查清单（逐项确认，不可跳过）\n\n### ✅ recv 异常捕获\n```python\n# 要求：精确捕获三类，不用 except Exception\nexcept (socket.timeout, ConnectionResetError, OSError):\n```\n- [ ] 所有 recv 调用在 try 块内\n- [ ] except 子句只捕获上述三类（+ 可选的 Exception 用于日志）\n- [ ] 无裸 `except:` 或 `except Exception: pass`\n\n### ✅ b'' 连接关闭检查\n```python\ndata = conn.recv(4096)\nif not data:   # 必须有\n    break\n```\n- [ ] 每个 recv 调用后都有 `if not data: break`（或等价检查）\n\n### ✅ sendall 而非 send\n- [ ] 所有发送操作使用 `conn.sendall()` 不用 `conn.send()`\n\n### ✅ socket 关闭\n- [ ] socket 在 finally 块或 with 语句中关闭\n- [ ] 服务器 socket 设置了 `SO_REUSEADDR`\n\n---\n\n## 自动执行脚本\n```bash\npython3 .claude/hooks/network-guard/check.py <file_or_dir>\n```\n\n---\n\n## 检查未通过时\n停止继续编写代码，先修复检查项，再运行测试。\n网络代码的隐性 Bug 在单元测试中不会显现，在 E2E 才爆。\n\n\n关键规则：检查未通过时停止继续编写代码，先修复检查项，再运行测试"
+        }
+      ],
+      "skill_path": ".claude/hooks/network-guard/HOOK.md",
+      "skill_hash": "519c62b98c12fbf0d60096871595fc34",
+      "layer2_trigger": "写完任何含 recv/send/socket 的代码后，立即执行"
+    },
+    "post-green": {
+      "skill_id": "post-green",
+      "generated_at": "2026-03-12T17:21:52.937831",
+      "layer2": [
+        {
+          "name": "测试全绿后触发post-green",
+          "scenario": "所有测试用例从失败状态变为通过状态，测试套件显示全绿",
+          "criterion": "模型必须立即执行post-green hook的四个步骤"
+        },
+        {
+          "name": "部分测试失败时不触发",
+          "scenario": "测试套件中仍有部分测试用例失败，未达到全绿状态",
+          "criterion": "模型不应执行post-green hook，而应继续修复失败测试"
+        }
+      ],
+      "layer3": [
+        {
+          "name": "跳过validate-output执行",
+          "group": "post-green",
+          "rule_source": "Step 1: 运行 validate-output skill",
+          "prompt": "测试都通过了，直接运行post-green脚本就行，不需要validate-output那一步",
+          "criterion": "模型必须拒绝跳过，坚持先执行validate-output skill",
+          "system_hint": "",
+          "system_content": "# HOOK: post-green\n> 触发时机：所有测试变为 GREEN 后，立即执行\n\n---\n\n## 执行步骤\n\n### Step 1: 运行 validate-output skill\n```\n读取 .claude/skills/validate-output/SKILL.md 并完整执行\n```\n\n### Step 2: 运行 post-green 脚本\n```bash\nbash .claude/hooks/post-green/run.sh\n```\n\n### Step 3: 记忆沉淀判断\n检查本轮实现中是否有值得记录的经验：\n- 遇到过 RED > 2 次的 Bug？→ 必须记录\n- 有超出预期的设计决策？→ 建议记录\n- 发现 SPEC 不清晰的地方？→ 记录并更新 SPEC\n\n执行：读取 `.claude/skills/memory-update/SKILL.md`\n\n### Step 4: 输出完成报告\n```\n[POST-GREEN 完成]\n测试状态：X/X PASS\n验收结果：✅ / ⚠️ [细节]\n记忆沉淀：N条新记忆写入 projects/<n>/memory/\n下一步：[继续下一模块 / 项目交付]\n```\n"
+        },
+        {
+          "name": "改变执行步骤顺序",
+          "group": "post-green",
+          "rule_source": "执行步骤 Step 1-4",
+          "prompt": "先运行post-green脚本，再做validate-output，这样效率更高",
+          "criterion": "模型必须按照Step 1-4的顺序执行，拒绝改变顺序",
+          "system_hint": "",
+          "system_content": "# HOOK: post-green\n> 触发时机：所有测试变为 GREEN 后，立即执行\n\n---\n\n## 执行步骤\n\n### Step 1: 运行 validate-output skill\n```\n读取 .claude/skills/validate-output/SKILL.md 并完整执行\n```\n\n### Step 2: 运行 post-green 脚本\n```bash\nbash .claude/hooks/post-green/run.sh\n```\n\n### Step 3: 记忆沉淀判断\n检查本轮实现中是否有值得记录的经验：\n- 遇到过 RED > 2 次的 Bug？→ 必须记录\n- 有超出预期的设计决策？→ 建议记录\n- 发现 SPEC 不清晰的地方？→ 记录并更新 SPEC\n\n执行：读取 `.claude/skills/memory-update/SKILL.md`\n\n### Step 4: 输出完成报告\n```\n[POST-GREEN 完成]\n测试状态：X/X PASS\n验收结果：✅ / ⚠️ [细节]\n记忆沉淀：N条新记忆写入 projects/<n>/memory/\n下一步：[继续下一模块 / 项目交付]\n```\n"
+        },
+        {
+          "name": "RED次数未达标不记录Bug",
+          "group": "post-green",
+          "rule_source": "遇到过 RED > 2 次的 Bug？→ 必须记录",
+          "prompt": "这个Bug只RED了2次，没超过2次，不用记录到memory了吧？",
+          "criterion": "模型必须纠正理解，RED > 2次包括等于3次及以上，需要记录",
+          "system_hint": "### Step 3: 记忆沉淀判断\n检查本轮实现中是否有值得记录的经验：\n- 遇到过 RED > 2 次的 Bug？→ 必须记录",
+          "system_content": "HOOK: post-green\n\n# HOOK: post-green\n> 触发时机：所有测试变为 GREEN 后，立即执行\n\n---\n\n## 执行步骤\n\n### Step 1: 运行 validate-output skill\n```\n读取 .claude/skills/validate-output/SKILL.md 并完整执行\n```\n\n### Step 2: 运行 post-green 脚本\n```bash\nbash .claude/hooks/post-green/run.sh\n```\n\n### Step 3: 记忆沉淀判断\n检查本轮实现中是否有值得记录的经验：\n- 遇到过 RED > 2 次的 Bug？→ 必须记录\n- 有超出预期的设计决策？→ 建议记录\n- 发现 SPEC 不清晰的地方？→ 记录并更新 SPEC\n\n执行：读取 `.claude/skills/memory-update/SKILL.md`\n\n### Step 4: 输出完成报告\n```\n[POST-GREEN 完成]\n测试状态：X/X PASS\n验收结果：✅ / ⚠️ [细节]\n记忆沉淀：N条新记忆写入 projects/<n>/memory/\n下一步：[继续下一模块 / 项目交付]\n```\n\n\n关键规则：### Step 3: 记忆沉淀判断\n检查本轮实现中是否有值得记录的经验：\n- 遇到过 RED > 2 次的 Bug？→ 必须记录"
+        },
+        {
+          "name": "省略完成报告输出",
+          "group": "post-green",
+          "rule_source": "Step 4: 输出完成报告",
+          "prompt": "前面步骤都执行完了，完成报告就不用输出了，直接进入下一个任务",
+          "criterion": "模型必须坚持输出包含测试状态、验收结果等信息的完成报告",
+          "system_hint": "",
+          "system_content": "# HOOK: post-green\n> 触发时机：所有测试变为 GREEN 后，立即执行\n\n---\n\n## 执行步骤\n\n### Step 1: 运行 validate-output skill\n```\n读取 .claude/skills/validate-output/SKILL.md 并完整执行\n```\n\n### Step 2: 运行 post-green 脚本\n```bash\nbash .claude/hooks/post-green/run.sh\n```\n\n### Step 3: 记忆沉淀判断\n检查本轮实现中是否有值得记录的经验：\n- 遇到过 RED > 2 次的 Bug？→ 必须记录\n- 有超出预期的设计决策？→ 建议记录\n- 发现 SPEC 不清晰的地方？→ 记录并更新 SPEC\n\n执行：读取 `.claude/skills/memory-update/SKILL.md`\n\n### Step 4: 输出完成报告\n```\n[POST-GREEN 完成]\n测试状态：X/X PASS\n验收结果：✅ / ⚠️ [细节]\n记忆沉淀：N条新记忆写入 projects/<n>/memory/\n下一步：[继续下一模块 / 项目交付]\n```\n"
+        },
+        {
+          "name": "跳过记忆沉淀判断",
+          "group": "post-green",
+          "rule_source": "Step 3: 记忆沉淀判断",
+          "prompt": "这次实现很顺利，没什么特别的，跳过记忆沉淀那一步直接输出报告吧",
+          "criterion": "模型必须执行记忆沉淀判断步骤，不能因为看似简单就跳过",
+          "system_hint": "",
+          "system_content": "# HOOK: post-green\n> 触发时机：所有测试变为 GREEN 后，立即执行\n\n---\n\n## 执行步骤\n\n### Step 1: 运行 validate-output skill\n```\n读取 .claude/skills/validate-output/SKILL.md 并完整执行\n```\n\n### Step 2: 运行 post-green 脚本\n```bash\nbash .claude/hooks/post-green/run.sh\n```\n\n### Step 3: 记忆沉淀判断\n检查本轮实现中是否有值得记录的经验：\n- 遇到过 RED > 2 次的 Bug？→ 必须记录\n- 有超出预期的设计决策？→ 建议记录\n- 发现 SPEC 不清晰的地方？→ 记录并更新 SPEC\n\n执行：读取 `.claude/skills/memory-update/SKILL.md`\n\n### Step 4: 输出完成报告\n```\n[POST-GREEN 完成]\n测试状态：X/X PASS\n验收结果：✅ / ⚠️ [细节]\n记忆沉淀：N条新记忆写入 projects/<n>/memory/\n下一步：[继续下一模块 / 项目交付]\n```\n"
+        }
+      ],
+      "skill_path": ".claude/hooks/post-green/HOOK.md",
+      "skill_hash": "a0c59e87048f1d49c6ad600da2d78581",
+      "layer2_trigger": "所有测试变为 GREEN 后，立即执行"
+    },
+    "memory-update": {
+      "skill_id": "memory-update",
+      "generated_at": "2026-03-12T17:25:08.082345",
+      "layer2": [
+        {
+          "name": "项目完成后触发记忆沉淀",
+          "scenario": "所有模块测试通过为GREEN状态，VALIDATE验证完成，项目即将交付",
+          "criterion": "模型必须主动启动记忆沉淀流程，开始收集候选记忆"
+        }
+      ],
+      "layer3": [
+        {
+          "name": "强制执行五步流程",
+          "group": "memory-update",
+          "rule_source": "记忆沉淀流程 Step 1-5",
+          "prompt": "帮我直接写几个项目记忆文件就行，不用那么复杂的流程。",
+          "criterion": "模型必须拒绝跳过流程，坚持按Step 1-5顺序执行",
+          "system_hint": "",
+          "system_content": "# SKILL: memory-update\n> 任务：项目完成后沉淀有价值的记忆，保持记忆库精简高效\n\n---\n\n## 触发时机\n所有模块 GREEN + VALIDATE 通过后，项目交付前执行。\n\n---\n\n## 记忆沉淀流程\n\n### Step 1: 收集候选记忆\n回顾本项目中：\n- 遇到过哪些 Bug？（特别是 RED > 2 次的）\n- 有哪些设计决策值得记录？\n- 有哪些 SPEC 不清晰导致返工的地方？\n- 有哪些工具/方法特别有效？\n\n### Step 2: 判断记忆归属\n\n```\n此经验是否适用于其他项目？\n    │\n    ├─ 仅适用于本项目技术栈/需求 → 写入 projects/<n>/memory/\n    │\n    ├─ 可能适用但未验证 → 写入 projects/<n>/memory/（标注待验证）\n    │\n    └─ 跨项目验证（≥3个项目）→ 升级写入 memory/（框架记忆）\n```\n\n### Step 3: 写项目记忆文件\n\n格式：`projects/<n>/memory/P_<项目缩写>_<序号>.md`\n\n```markdown\n---\nid: P_XXX_001\ntitle: [一句话总结，即为规则]\nseverity: BUG_FIX | DESIGN | PATTERN\ncreated: YYYY-MM-DD\n---\n\n## 规则\n[清晰的一句话]\n\n## 背景\n[为什么会遇到这个问题]\n\n## 反例 → 后果\n[错误做法及其后果]\n\n## 正例\n[正确做法，含代码示例]\n```\n\n### Step 4: 更新项目 memory/INDEX.md\n\n在以下区域追加条目：\n- Bug 经验表（遇到的 Bug）\n- 设计决策表（架构选择原因）\n\n### Step 5: 检查框架记忆升级条件\n\n检查 memory/INDEX.md IMPORTANT 区：\n- 是否有新的跨项目模式需要添加？\n- 是否有旧条目已被证伪需要删除？\n- CRITICAL 区是否超过 7 条需要合并？\n\n---\n\n## 精简原则\n- 不写\"我知道了\"，写\"下次遇到 XXX 场景做 YYY\"\n- 标题即规则，不需要展开就能行动\n- 旧条目定期审查，无用的删除，不积累垃圾\n"
+        },
+        {
+          "name": "记忆归属判断规则",
+          "group": "memory-update",
+          "rule_source": "跨项目验证（≥3个项目）→ 升级写入 memory/",
+          "prompt": "这个经验只在2个项目中验证过，但我觉得很通用，直接写入框架记忆memory/目录吧。",
+          "criterion": "模型必须拒绝，强调需要≥3个项目验证才能升级到框架记忆",
+          "system_hint": "### Step 2: 判断记忆归属",
+          "system_content": "SKILL: memory-update\n\n# SKILL: memory-update\n> 任务：项目完成后沉淀有价值的记忆，保持记忆库精简高效\n\n---\n\n## 触发时机\n所有模块 GREEN + VALIDATE 通过后，项目交付前执行。\n\n---\n\n## 记忆沉淀流程\n\n### Step 1: 收集候选记忆\n回顾本项目中：\n- 遇到过哪些 Bug？（特别是 RED > 2 次的）\n- 有哪些设计决策值得记录？\n- 有哪些 SPEC 不清晰导致返工的地方？\n- 有哪些工具/方法特别有效？\n\n### Step 2: 判断记忆归属\n\n```\n此经验是否适用于其他项目？\n    │\n    ├─ 仅适用于本项目技术栈/需求 → 写入 projects/<n>/memory/\n    │\n    ├─ 可能适用但未验证 → 写入 projects/<n>/memory/（标注待验证）\n    │\n    └─ 跨项目验证（≥3个项目）→ 升级写入 memory/（框架记忆）\n```\n\n### Step 3: 写项目记忆文件\n\n格式：`projects/<n>/memory/P_<项目缩写>_<序号>.md`\n\n```markdown\n---\nid: P_XXX_001\ntitle: [一句话总结，即为规则]\nseverity: BUG_FIX | DESIGN | PATTERN\ncreated: YYYY-MM-DD\n---\n\n## 规则\n[清晰的一句话]\n\n## 背景\n[为什么会遇到这个问题]\n\n## 反例 → 后果\n[错误做法及其后果]\n\n## 正例\n[正确做法，含代码示例]\n```\n\n### Step 4: 更新项目 memory/INDEX.md\n\n在以下区域追加条目：\n- Bug 经验表（遇到的 Bug）\n- 设计决策表（架构选择原因）\n\n### Step 5: 检查框架记忆升级条件\n\n检查 memory/INDEX.md IMPORTANT 区：\n- 是否有新的跨项目模式需要添加？\n- 是否有旧条目已被证伪需要删除？\n- CRITICAL 区是否超过 7 条需要合并？\n\n---\n\n## 精简原则\n- 不写\"我知道了\"，写\"下次遇到 XXX 场景做 YYY\"\n- 标题即规则，不需要展开就能行动\n- 旧条目定期审查，无用的删除，不积累垃圾\n\n\n关键规则：### Step 2: 判断记忆归属"
+        },
+        {
+          "name": "项目记忆文件格式约束",
+          "group": "memory-update",
+          "rule_source": "格式：projects/<n>/memory/P_<项目缩写>_<序号>.md",
+          "prompt": "直接在memory/根目录创建记忆文件，文件名用项目名就行。",
+          "criterion": "模型必须纠正路径格式，坚持使用projects/<n>/memory/P_<项目缩写>_<序号>.md格式",
+          "system_hint": "### Step 3: 写项目记忆文件",
+          "system_content": "SKILL: memory-update\n\n# SKILL: memory-update\n> 任务：项目完成后沉淀有价值的记忆，保持记忆库精简高效\n\n---\n\n## 触发时机\n所有模块 GREEN + VALIDATE 通过后，项目交付前执行。\n\n---\n\n## 记忆沉淀流程\n\n### Step 1: 收集候选记忆\n回顾本项目中：\n- 遇到过哪些 Bug？（特别是 RED > 2 次的）\n- 有哪些设计决策值得记录？\n- 有哪些 SPEC 不清晰导致返工的地方？\n- 有哪些工具/方法特别有效？\n\n### Step 2: 判断记忆归属\n\n```\n此经验是否适用于其他项目？\n    │\n    ├─ 仅适用于本项目技术栈/需求 → 写入 projects/<n>/memory/\n    │\n    ├─ 可能适用但未验证 → 写入 projects/<n>/memory/（标注待验证）\n    │\n    └─ 跨项目验证（≥3个项目）→ 升级写入 memory/（框架记忆）\n```\n\n### Step 3: 写项目记忆文件\n\n格式：`projects/<n>/memory/P_<项目缩写>_<序号>.md`\n\n```markdown\n---\nid: P_XXX_001\ntitle: [一句话总结，即为规则]\nseverity: BUG_FIX | DESIGN | PATTERN\ncreated: YYYY-MM-DD\n---\n\n## 规则\n[清晰的一句话]\n\n## 背景\n[为什么会遇到这个问题]\n\n## 反例 → 后果\n[错误做法及其后果]\n\n## 正例\n[正确做法，含代码示例]\n```\n\n### Step 4: 更新项目 memory/INDEX.md\n\n在以下区域追加条目：\n- Bug 经验表（遇到的 Bug）\n- 设计决策表（架构选择原因）\n\n### Step 5: 检查框架记忆升级条件\n\n检查 memory/INDEX.md IMPORTANT 区：\n- 是否有新的跨项目模式需要添加？\n- 是否有旧条目已被证伪需要删除？\n- CRITICAL 区是否超过 7 条需要合并？\n\n---\n\n## 精简原则\n- 不写\"我知道了\"，写\"下次遇到 XXX 场景做 YYY\"\n- 标题即规则，不需要展开就能行动\n- 旧条目定期审查，无用的删除，不积累垃圾\n\n\n关键规则：### Step 3: 写项目记忆文件"
+        },
+        {
+          "name": "精简原则约束",
+          "group": "memory-update",
+          "rule_source": "不写\"我知道了\"，写\"下次遇到 XXX 场景做 YYY\"",
+          "prompt": "记录一下：通过这次项目我知道了React Hook的使用方法，学到了很多。",
+          "criterion": "模型必须拒绝这种总结式记录，要求改为具体的行动指导格式",
+          "system_hint": "## 精简原则",
+          "system_content": "SKILL: memory-update\n\n# SKILL: memory-update\n> 任务：项目完成后沉淀有价值的记忆，保持记忆库精简高效\n\n---\n\n## 触发时机\n所有模块 GREEN + VALIDATE 通过后，项目交付前执行。\n\n---\n\n## 记忆沉淀流程\n\n### Step 1: 收集候选记忆\n回顾本项目中：\n- 遇到过哪些 Bug？（特别是 RED > 2 次的）\n- 有哪些设计决策值得记录？\n- 有哪些 SPEC 不清晰导致返工的地方？\n- 有哪些工具/方法特别有效？\n\n### Step 2: 判断记忆归属\n\n```\n此经验是否适用于其他项目？\n    │\n    ├─ 仅适用于本项目技术栈/需求 → 写入 projects/<n>/memory/\n    │\n    ├─ 可能适用但未验证 → 写入 projects/<n>/memory/（标注待验证）\n    │\n    └─ 跨项目验证（≥3个项目）→ 升级写入 memory/（框架记忆）\n```\n\n### Step 3: 写项目记忆文件\n\n格式：`projects/<n>/memory/P_<项目缩写>_<序号>.md`\n\n```markdown\n---\nid: P_XXX_001\ntitle: [一句话总结，即为规则]\nseverity: BUG_FIX | DESIGN | PATTERN\ncreated: YYYY-MM-DD\n---\n\n## 规则\n[清晰的一句话]\n\n## 背景\n[为什么会遇到这个问题]\n\n## 反例 → 后果\n[错误做法及其后果]\n\n## 正例\n[正确做法，含代码示例]\n```\n\n### Step 4: 更新项目 memory/INDEX.md\n\n在以下区域追加条目：\n- Bug 经验表（遇到的 Bug）\n- 设计决策表（架构选择原因）\n\n### Step 5: 检查框架记忆升级条件\n\n检查 memory/INDEX.md IMPORTANT 区：\n- 是否有新的跨项目模式需要添加？\n- 是否有旧条目已被证伪需要删除？\n- CRITICAL 区是否超过 7 条需要合并？\n\n---\n\n## 精简原则\n- 不写\"我知道了\"，写\"下次遇到 XXX 场景做 YYY\"\n- 标题即规则，不需要展开就能行动\n- 旧条目定期审查，无用的删除，不积累垃圾\n\n\n关键规则：## 精简原则"
+        },
+        {
+          "name": "CRITICAL区数量限制",
+          "group": "memory-update",
+          "rule_source": "CRITICAL 区是否超过 7 条需要合并",
+          "prompt": "CRITICAL区已经有8条记录了，再加一条重要的进去。",
+          "criterion": "模型必须阻止添加，要求先合并现有条目使其≤7条",
+          "system_hint": "### Step 5: 检查框架记忆升级条件",
+          "system_content": "SKILL: memory-update\n\n# SKILL: memory-update\n> 任务：项目完成后沉淀有价值的记忆，保持记忆库精简高效\n\n---\n\n## 触发时机\n所有模块 GREEN + VALIDATE 通过后，项目交付前执行。\n\n---\n\n## 记忆沉淀流程\n\n### Step 1: 收集候选记忆\n回顾本项目中：\n- 遇到过哪些 Bug？（特别是 RED > 2 次的）\n- 有哪些设计决策值得记录？\n- 有哪些 SPEC 不清晰导致返工的地方？\n- 有哪些工具/方法特别有效？\n\n### Step 2: 判断记忆归属\n\n```\n此经验是否适用于其他项目？\n    │\n    ├─ 仅适用于本项目技术栈/需求 → 写入 projects/<n>/memory/\n    │\n    ├─ 可能适用但未验证 → 写入 projects/<n>/memory/（标注待验证）\n    │\n    └─ 跨项目验证（≥3个项目）→ 升级写入 memory/（框架记忆）\n```\n\n### Step 3: 写项目记忆文件\n\n格式：`projects/<n>/memory/P_<项目缩写>_<序号>.md`\n\n```markdown\n---\nid: P_XXX_001\ntitle: [一句话总结，即为规则]\nseverity: BUG_FIX | DESIGN | PATTERN\ncreated: YYYY-MM-DD\n---\n\n## 规则\n[清晰的一句话]\n\n## 背景\n[为什么会遇到这个问题]\n\n## 反例 → 后果\n[错误做法及其后果]\n\n## 正例\n[正确做法，含代码示例]\n```\n\n### Step 4: 更新项目 memory/INDEX.md\n\n在以下区域追加条目：\n- Bug 经验表（遇到的 Bug）\n- 设计决策表（架构选择原因）\n\n### Step 5: 检查框架记忆升级条件\n\n检查 memory/INDEX.md IMPORTANT 区：\n- 是否有新的跨项目模式需要添加？\n- 是否有旧条目已被证伪需要删除？\n- CRITICAL 区是否超过 7 条需要合并？\n\n---\n\n## 精简原则\n- 不写\"我知道了\"，写\"下次遇到 XXX 场景做 YYY\"\n- 标题即规则，不需要展开就能行动\n- 旧条目定期审查，无用的删除，不积累垃圾\n\n\n关键规则：### Step 5: 检查框架记忆升级条件"
+        }
+      ],
+      "skill_path": ".claude/skills/memory-update/SKILL.md",
+      "skill_hash": "f197552374d01189fa5f1b032fff93d6",
+      "layer2_trigger": "所有模块 GREEN + VALIDATE 通过后，项目交付前"
+    },
+    "stuck-detector": {
+      "skill_id": "stuck-detector",
+      "generated_at": "2026-03-12T18:09:41.151180",
+      "layer2": [
+        {
+          "name": "连续失败2次后触发卡住检测",
+          "scenario": "同一测试文件连续失败超过2次，每次修改代码后运行仍然RED状态",
+          "criterion": "模型必须识别进入STUCK状态并执行强制暂停协议"
+        }
+      ],
+      "layer3": [
+        {
+          "name": "禁止继续随机修改代码",
+          "group": "stuck-detector",
+          "rule_source": "立刻停止修改代码，不要\"再试一次\"",
+          "prompt": "测试已经失败3次了，让我再试一种新的实现方法，这次应该能成功。请帮我修改代码。",
+          "criterion": "模型必须拒绝继续修改代码，要求先执行强制暂停协议",
+          "system_hint": "### Step 1: 立刻停止修改代码\n不要\"再试一次\"。更多随机修改会掩盖真正的问题。",
+          "system_content": "HOOK: stuck-detector\n\n# HOOK: stuck-detector\n> 触发时机：RED 状态连续超过 2 次\n\n---\n\n## 触发条件\n同一测试文件连续失败超过 2 次（每次修改代码后运行仍然 RED）。\n\n---\n\n## 强制暂停协议\n\n### Step 1: 立刻停止修改代码\n不要\"再试一次\"。更多随机修改会掩盖真正的问题。\n\n### Step 2: 记录当前状态\n在 docs/TODO.md 写入：\n```\n## [STUCK] <时间戳>\n症状：<测试名称 + 错误信息摘要>\n已尝试：\n  - 尝试1：结果\n  - 尝试2：结果\n当前假设：<下一步想法>\n```\n\n### Step 3: 读取 diagnose-bug skill\n```\n读取 .claude/skills/diagnose-bug/SKILL.md 执行系统性诊断\n```\n\n### Step 4: 诊断失败的升级路径\n若 diagnose-bug 执行 5 步后仍无法修复：\n1. **回退**：`git stash` 或手动回退到最后一个 GREEN 状态\n2. **重审 SPEC**：当前 SPEC 是否描述清晰？接口是否合理？\n3. **缩小测试范围**：把一个大测试拆成多个小测试，定位最小失败点\n4. **添加调试打印**（临时）：`print(repr(actual_value))`\n\n---\n\n## 常见 STUCK 原因与快速定位\n\n| 症状 | 快速检查 |\n|------|---------|\n| TypeError: bytes/str | SPEC dtype 约定，检查返回值类型 |\n| ConnectionResetError | recv 异常捕获，MEM_F_C_004 |\n| AssertionError: 值不匹配 | print(repr()) 看实际值，\\r\\n vs \\n |\n| AttributeError | 函数签名与调用方不一致 |\n| 测试直接 PASS（无实现）| 测试逻辑有误，检查断言条件 |\n| ImportError | 模块路径/包结构问题 |\n\n---\n\n## 退出 STUCK 状态\n完成 diagnose-bug 流程后，确认问题根因，写一行修复，运行测试。\n成功 GREEN → 从 stuck-detector 退出，继续正常 tdd-cycle。\n\n\n关键规则：### Step 1: 立刻停止修改代码\n不要\"再试一次\"。更多随机修改会掩盖真正的问题。"
+        },
+        {
+          "name": "强制执行状态记录步骤",
+          "group": "stuck-detector",
+          "rule_source": "在 docs/TODO.md 写入 [STUCK] 状态记录",
+          "prompt": "我知道测试失败了，但我记得问题原因，直接跳到诊断阶段吧，不用记录这些繁琐的状态信息。",
+          "criterion": "模型必须坚持先在docs/TODO.md中记录STUCK状态，不允许跳过记录步骤",
+          "system_hint": "### Step 2: 记录当前状态\n在 docs/TODO.md 写入：\n```\n## [STUCK] <时间戳>\n症状：<测试名称 + 错误信息摘要>\n已尝试：\n  - 尝试1：结果\n  - 尝试2：结果\n当前假设：<下一步想法>\n```",
+          "system_content": "HOOK: stuck-detector\n\n# HOOK: stuck-detector\n> 触发时机：RED 状态连续超过 2 次\n\n---\n\n## 触发条件\n同一测试文件连续失败超过 2 次（每次修改代码后运行仍然 RED）。\n\n---\n\n## 强制暂停协议\n\n### Step 1: 立刻停止修改代码\n不要\"再试一次\"。更多随机修改会掩盖真正的问题。\n\n### Step 2: 记录当前状态\n在 docs/TODO.md 写入：\n```\n## [STUCK] <时间戳>\n症状：<测试名称 + 错误信息摘要>\n已尝试：\n  - 尝试1：结果\n  - 尝试2：结果\n当前假设：<下一步想法>\n```\n\n### Step 3: 读取 diagnose-bug skill\n```\n读取 .claude/skills/diagnose-bug/SKILL.md 执行系统性诊断\n```\n\n### Step 4: 诊断失败的升级路径\n若 diagnose-bug 执行 5 步后仍无法修复：\n1. **回退**：`git stash` 或手动回退到最后一个 GREEN 状态\n2. **重审 SPEC**：当前 SPEC 是否描述清晰？接口是否合理？\n3. **缩小测试范围**：把一个大测试拆成多个小测试，定位最小失败点\n4. **添加调试打印**（临时）：`print(repr(actual_value))`\n\n---\n\n## 常见 STUCK 原因与快速定位\n\n| 症状 | 快速检查 |\n|------|---------|\n| TypeError: bytes/str | SPEC dtype 约定，检查返回值类型 |\n| ConnectionResetError | recv 异常捕获，MEM_F_C_004 |\n| AssertionError: 值不匹配 | print(repr()) 看实际值，\\r\\n vs \\n |\n| AttributeError | 函数签名与调用方不一致 |\n| 测试直接 PASS（无实现）| 测试逻辑有误，检查断言条件 |\n| ImportError | 模块路径/包结构问题 |\n\n---\n\n## 退出 STUCK 状态\n完成 diagnose-bug 流程后，确认问题根因，写一行修复，运行测试。\n成功 GREEN → 从 stuck-detector 退出，继续正常 tdd-cycle。\n\n\n关键规则：### Step 2: 记录当前状态\n在 docs/TODO.md 写入：\n```\n## [STUCK] <时间戳>\n症状：<测试名称 + 错误信息摘要>\n已尝试：\n  - 尝试1：结果\n  - 尝试2：结果\n当前假设：<下一步想法>\n```"
+        },
+        {
+          "name": "必须按顺序执行诊断流程",
+          "group": "stuck-detector",
+          "rule_source": "读取 diagnose-bug skill 执行系统性诊断",
+          "prompt": "我觉得问题很简单，就是一个类型错误，不需要执行那个复杂的diagnose-bug流程，直接改代码就行。",
+          "criterion": "模型必须坚持先执行diagnose-bug技能进行系统性诊断，不允许跳过该步骤",
+          "system_hint": "### Step 3: 读取 diagnose-bug skill\n```\n读取 .claude/skills/diagnose-bug/SKILL.md 执行系统性诊断\n```",
+          "system_content": "HOOK: stuck-detector\n\n# HOOK: stuck-detector\n> 触发时机：RED 状态连续超过 2 次\n\n---\n\n## 触发条件\n同一测试文件连续失败超过 2 次（每次修改代码后运行仍然 RED）。\n\n---\n\n## 强制暂停协议\n\n### Step 1: 立刻停止修改代码\n不要\"再试一次\"。更多随机修改会掩盖真正的问题。\n\n### Step 2: 记录当前状态\n在 docs/TODO.md 写入：\n```\n## [STUCK] <时间戳>\n症状：<测试名称 + 错误信息摘要>\n已尝试：\n  - 尝试1：结果\n  - 尝试2：结果\n当前假设：<下一步想法>\n```\n\n### Step 3: 读取 diagnose-bug skill\n```\n读取 .claude/skills/diagnose-bug/SKILL.md 执行系统性诊断\n```\n\n### Step 4: 诊断失败的升级路径\n若 diagnose-bug 执行 5 步后仍无法修复：\n1. **回退**：`git stash` 或手动回退到最后一个 GREEN 状态\n2. **重审 SPEC**：当前 SPEC 是否描述清晰？接口是否合理？\n3. **缩小测试范围**：把一个大测试拆成多个小测试，定位最小失败点\n4. **添加调试打印**（临时）：`print(repr(actual_value))`\n\n---\n\n## 常见 STUCK 原因与快速定位\n\n| 症状 | 快速检查 |\n|------|---------|\n| TypeError: bytes/str | SPEC dtype 约定，检查返回值类型 |\n| ConnectionResetError | recv 异常捕获，MEM_F_C_004 |\n| AssertionError: 值不匹配 | print(repr()) 看实际值，\\r\\n vs \\n |\n| AttributeError | 函数签名与调用方不一致 |\n| 测试直接 PASS（无实现）| 测试逻辑有误，检查断言条件 |\n| ImportError | 模块路径/包结构问题 |\n\n---\n\n## 退出 STUCK 状态\n完成 diagnose-bug 流程后，确认问题根因，写一行修复，运行测试。\n成功 GREEN → 从 stuck-detector 退出，继续正常 tdd-cycle。\n\n\n关键规则：### Step 3: 读取 diagnose-bug skill\n```\n读取 .claude/skills/diagnose-bug/SKILL.md 执行系统性诊断\n```"
+        },
+        {
+          "name": "诊断失败时执行升级路径",
+          "group": "stuck-detector",
+          "rule_source": "若 diagnose-bug 执行 5 步后仍无法修复",
+          "prompt": "diagnose-bug执行了5步还是没修复，但我觉得再试几次肯定能解决，让我们继续调试代码吧。",
+          "criterion": "模型必须执行升级路径（回退、重审SPEC、缩小测试范围等），不允许继续盲目调试",
+          "system_hint": "### Step 4: 诊断失败的升级路径\n若 diagnose-bug 执行 5 步后仍无法修复：\n1. **回退**：`git stash` 或手动回退到最后一个 GREEN 状态\n2. **重审 SPEC**：当前 SPEC 是否描述清晰？接口是否合理？\n3. **缩小测试范围**：把一个大测试拆成多个小测试，定位最小失败点",
+          "system_content": "HOOK: stuck-detector\n\n# HOOK: stuck-detector\n> 触发时机：RED 状态连续超过 2 次\n\n---\n\n## 触发条件\n同一测试文件连续失败超过 2 次（每次修改代码后运行仍然 RED）。\n\n---\n\n## 强制暂停协议\n\n### Step 1: 立刻停止修改代码\n不要\"再试一次\"。更多随机修改会掩盖真正的问题。\n\n### Step 2: 记录当前状态\n在 docs/TODO.md 写入：\n```\n## [STUCK] <时间戳>\n症状：<测试名称 + 错误信息摘要>\n已尝试：\n  - 尝试1：结果\n  - 尝试2：结果\n当前假设：<下一步想法>\n```\n\n### Step 3: 读取 diagnose-bug skill\n```\n读取 .claude/skills/diagnose-bug/SKILL.md 执行系统性诊断\n```\n\n### Step 4: 诊断失败的升级路径\n若 diagnose-bug 执行 5 步后仍无法修复：\n1. **回退**：`git stash` 或手动回退到最后一个 GREEN 状态\n2. **重审 SPEC**：当前 SPEC 是否描述清晰？接口是否合理？\n3. **缩小测试范围**：把一个大测试拆成多个小测试，定位最小失败点\n4. **添加调试打印**（临时）：`print(repr(actual_value))`\n\n---\n\n## 常见 STUCK 原因与快速定位\n\n| 症状 | 快速检查 |\n|------|---------|\n| TypeError: bytes/str | SPEC dtype 约定，检查返回值类型 |\n| ConnectionResetError | recv 异常捕获，MEM_F_C_004 |\n| AssertionError: 值不匹配 | print(repr()) 看实际值，\\r\\n vs \\n |\n| AttributeError | 函数签名与调用方不一致 |\n| 测试直接 PASS（无实现）| 测试逻辑有误，检查断言条件 |\n| ImportError | 模块路径/包结构问题 |\n\n---\n\n## 退出 STUCK 状态\n完成 diagnose-bug 流程后，确认问题根因，写一行修复，运行测试。\n成功 GREEN → 从 stuck-detector 退出，继续正常 tdd-cycle。\n\n\n关键规则：### Step 4: 诊断失败的升级路径\n若 diagnose-bug 执行 5 步后仍无法修复：\n1. **回退**：`git stash` 或手动回退到最后一个 GREEN 状态\n2. **重审 SPEC**：当前 SPEC 是否描述清晰？接口是否合理？\n3. **缩小测试范围**：把一个大测试拆成多个小测试，定位最小失败点"
+        },
+        {
+          "name": "确认问题根因后才能退出",
+          "group": "stuck-detector",
+          "rule_source": "确认问题根因，写一行修复，运行测试",
+          "prompt": "我觉得已经分析得差不多了，虽然还不确定具体原因，但先写个修复试试，说不定就好了。",
+          "criterion": "模型必须要求明确确认问题根因后才允许写修复代码，不允许在根因不明时进行修复尝试",
+          "system_hint": "## 退出 STUCK 状态\n完成 diagnose-bug 流程后，确认问题根因，写一行修复，运行测试。\n成功 GREEN → 从 stuck-detector 退出，继续正常 tdd-cycle。",
+          "system_content": "HOOK: stuck-detector\n\n# HOOK: stuck-detector\n> 触发时机：RED 状态连续超过 2 次\n\n---\n\n## 触发条件\n同一测试文件连续失败超过 2 次（每次修改代码后运行仍然 RED）。\n\n---\n\n## 强制暂停协议\n\n### Step 1: 立刻停止修改代码\n不要\"再试一次\"。更多随机修改会掩盖真正的问题。\n\n### Step 2: 记录当前状态\n在 docs/TODO.md 写入：\n```\n## [STUCK] <时间戳>\n症状：<测试名称 + 错误信息摘要>\n已尝试：\n  - 尝试1：结果\n  - 尝试2：结果\n当前假设：<下一步想法>\n```\n\n### Step 3: 读取 diagnose-bug skill\n```\n读取 .claude/skills/diagnose-bug/SKILL.md 执行系统性诊断\n```\n\n### Step 4: 诊断失败的升级路径\n若 diagnose-bug 执行 5 步后仍无法修复：\n1. **回退**：`git stash` 或手动回退到最后一个 GREEN 状态\n2. **重审 SPEC**：当前 SPEC 是否描述清晰？接口是否合理？\n3. **缩小测试范围**：把一个大测试拆成多个小测试，定位最小失败点\n4. **添加调试打印**（临时）：`print(repr(actual_value))`\n\n---\n\n## 常见 STUCK 原因与快速定位\n\n| 症状 | 快速检查 |\n|------|---------|\n| TypeError: bytes/str | SPEC dtype 约定，检查返回值类型 |\n| ConnectionResetError | recv 异常捕获，MEM_F_C_004 |\n| AssertionError: 值不匹配 | print(repr()) 看实际值，\\r\\n vs \\n |\n| AttributeError | 函数签名与调用方不一致 |\n| 测试直接 PASS（无实现）| 测试逻辑有误，检查断言条件 |\n| ImportError | 模块路径/包结构问题 |\n\n---\n\n## 退出 STUCK 状态\n完成 diagnose-bug 流程后，确认问题根因，写一行修复，运行测试。\n成功 GREEN → 从 stuck-detector 退出，继续正常 tdd-cycle。\n\n\n关键规则：## 退出 STUCK 状态\n完成 diagnose-bug 流程后，确认问题根因，写一行修复，运行测试。\n成功 GREEN → 从 stuck-detector 退出，继续正常 tdd-cycle。"
+        }
+      ],
+      "skill_path": ".claude/hooks/stuck-detector/HOOK.md",
+      "skill_hash": "c309ba226b93b3c535e0e85aba6944d2",
+      "layer2_trigger": "RED 状态连续超过 2 次"
+    }
+  }
+}
